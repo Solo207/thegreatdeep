@@ -1,4 +1,10 @@
-body {
-  margin: 0;
-  font-family: system-ui, sans-serif;
+@import "tailwindcss";
+
+/* Thin scrollbars that only show while the mouse is over a scrolling area */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+*:hover {
+  scrollbar-color: #3f3f46 transparent;
 }

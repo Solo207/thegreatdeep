@@ -3,6 +3,9 @@ import { fileURLToPath } from "url";
 import express from "express";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./src/auth.js";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import chatsRouter from "./src/routes/chats.js"; // <-- added
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -11,17 +14,38 @@ const distPath = path.resolve(__dirname, "../client/dist");
 
 app.set("trust proxy", 1); // you're behind Easypanel's proxy
 
+app.use(helmet());
+
+// auth endpoints: generous, because the app asks "am I signed in?" on every page load
+app.use("/api/auth", rateLimit({ windowMs: 60_000, limit: 100, standardHeaders: true, legacyHeaders: false }));
+
 // Better Auth BEFORE express.json()
 app.all("/api/auth/*splat", toNodeHandler(auth));
 
-app.use(express.json());
+app.use(express.json({ limit: "50kb" }));
 
 app.get("/api/health", (req, res) => res.json({ ok: true }));
+
+// chats (every route inside requires a signed-in user)   <-- added
+app.use(
+  "/api/chats",
+  rateLimit({ windowMs: 60_000, limit: 60, standardHeaders: true, legacyHeaders: false }),
+  chatsRouter
+);
 
 app.use(express.static(distPath));
 app.get("{*splat}", (req, res, next) => {
   if (req.path.startsWith("/api")) return next();
   res.sendFile(path.resolve(distPath, "index.html"));
+});
+
+app.use("/api", (req, res) => {
+  res.status(404).json({ error: "Not found" });
+});
+
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ error: "Something went wrong" });
 });
 
 app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
