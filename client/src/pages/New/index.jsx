@@ -35,7 +35,7 @@ export default function New() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4">
-      <h1 className="mb-8 text-center text-3xl font-semibold">
+      <h1 className="mb-8 text-center text-3xl font-semibold [@media(max-height:500px)]:hidden">
         Hi {firstName}, what are we studying?
       </h1>
 

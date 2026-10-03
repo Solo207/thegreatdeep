@@ -3,11 +3,16 @@ import Sidebar from "./sidebar/Sidebar";
 import SidebarToggle from "./sidebar/SidebarToggle";
 import HistoryProvider from "./sidebar/HistoryProvider";
 import useSidebarState from "./sidebar/useSidebarState";
+import useVisualViewportHeight from "../hooks/useVisualViewportHeight";
 import { SIDEBAR_SLIDE_MS } from "./sidebar/config";
 
 export default function AppShell() {
-  const { isDesktop, isOpen, toggle, closeDrawer, peek, startPeek, endPeek } =
-    useSidebarState();
+  const {
+    isDesktop, isOpen, toggle, closeDrawer,
+    peek, startPeek, endPeek,
+    width, setWidth,
+  } = useSidebarState();
+  const viewportHeight = useVisualViewportHeight();
 
   // on small screens, close the drawer after tapping a link
   const afterNavigate = () => {
@@ -16,10 +21,19 @@ export default function AppShell() {
 
   return (
     <HistoryProvider>
-      <div className="flex h-dvh bg-zinc-900 text-zinc-100">
+      <div
+        style={{ height: viewportHeight }}
+        className="flex overflow-hidden bg-zinc-900 text-zinc-100"
+      >
         {/* big screens, pinned open: the sidebar sits beside the page */}
         {isDesktop && isOpen && (
-          <Sidebar onToggle={toggle} onNavigate={afterNavigate} />
+          <Sidebar
+            width={width}
+            maxWidth="50vw"
+            onResize={setWidth}
+            onToggle={toggle}
+            onNavigate={afterNavigate}
+          />
         )}
 
         {/* big screens, hidden: hovering the icon eases the sidebar in
@@ -43,7 +57,13 @@ export default function AppShell() {
                   : "pointer-events-none invisible -translate-x-8 opacity-0"
               }`}
             >
-              <Sidebar onToggle={toggle} onNavigate={afterNavigate} />
+              <Sidebar
+                width={width}
+                maxWidth="50vw"
+                onResize={setWidth}
+                onToggle={toggle}
+                onNavigate={afterNavigate}
+              />
             </div>
           </div>
         )}

@@ -8,3 +8,8 @@
 *:hover {
   scrollbar-color: #3f3f46 transparent;
 }
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}

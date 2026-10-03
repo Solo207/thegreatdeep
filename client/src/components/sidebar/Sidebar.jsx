@@ -3,15 +3,25 @@ import { authClient } from "../../lib/auth-client";
 import SidebarToggle from "./SidebarToggle";
 import ChatListItem from "./ChatListItem";
 import { useHistory } from "./history-context";
+import ResizeHandle from "./ResizeHandle";
+import { SIDEBAR_DEFAULT_WIDTH } from "./config";
 
-export default function Sidebar({ onToggle, onNavigate }) {
+export default function Sidebar({
+  width = SIDEBAR_DEFAULT_WIDTH,
+  maxWidth = "85vw",
+  onResize,
+  onToggle,
+  onNavigate,
+}) {
   const navigate = useNavigate();
   const { chats, hasMore, status, retry } = useHistory();
   const activeId = useMatch("/chat/:chatId")?.params.chatId;
 
   return (
-    <aside className="flex h-full w-64 max-w-[85vw] shrink-0 flex-col border-r border-zinc-800 bg-zinc-950">
-      {/* pinned top */}
+    <aside
+      style={{ width, maxWidth }}
+      className="relative flex h-full shrink-0 flex-col border-r border-zinc-800 bg-zinc-950"
+    >      {/* pinned top */}
       <div className="shrink-0 p-3">
         <div className="mb-3 flex items-center gap-2">
           <SidebarToggle onClick={onToggle} />
@@ -98,6 +108,7 @@ export default function Sidebar({ onToggle, onNavigate }) {
           Sign out
         </button>
       </div>
+      {onResize && <ResizeHandle width={width} onResize={onResize} />}
     </aside>
   );
 }

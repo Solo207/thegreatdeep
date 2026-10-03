@@ -1,8 +1,11 @@
 import { useRef, useState } from "react";
+import useMediaQuery from "../../hooks/useMediaQuery";
 
 export default function ChatInput({ onSend, disabled = false }) {
   const [value, setValue] = useState("");
   const ref = useRef(null);
+  // phones and tablets: Enter makes a new line, the arrow button sends
+  const isTouch = useMediaQuery("(pointer: coarse)");
 
   const resize = () => {
     const el = ref.current;
@@ -20,7 +23,8 @@ export default function ChatInput({ onSend, disabled = false }) {
   };
 
   const handleKeyDown = (e) => {
-    // Enter sends, Shift+Enter makes a new line
+    if (isTouch) return; // let the phone keyboard's Enter add a new line
+    // computer: Enter sends, Shift+Enter makes a new line
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       submit();
@@ -28,12 +32,19 @@ export default function ChatInput({ onSend, disabled = false }) {
   };
 
   return (
-    <div className="w-full rounded-2xl border border-zinc-700 bg-zinc-800 p-3 shadow-lg transition-colors focus-within:border-zinc-500">
+    <div
+      // clicking anywhere in the box (not just the first line) focuses the text
+      onClick={(e) => {
+        if (!e.target.closest("button")) ref.current?.focus();
+      }}
+      className="w-full cursor-text rounded-2xl border border-zinc-700 bg-zinc-800 p-3 shadow-lg transition-colors focus-within:border-zinc-500"
+    >
       <textarea
         ref={ref}
         rows={1}
         value={value}
         maxLength={4000}
+        enterKeyHint="enter"
         onChange={(e) => {
           setValue(e.target.value);
           resize();
@@ -47,7 +58,7 @@ export default function ChatInput({ onSend, disabled = false }) {
           onClick={submit}
           disabled={disabled || !value.trim()}
           aria-label="Send message"
-          className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-500 text-white transition-colors hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-500"
+          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg bg-indigo-500 text-white transition-colors hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-500"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
