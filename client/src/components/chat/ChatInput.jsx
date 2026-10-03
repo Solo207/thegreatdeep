@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import useMediaQuery from "../../hooks/useMediaQuery";
 
-export default function ChatInput({ onSend, disabled = false }) {
+export default function ChatInput({ onSend, disabled = false, autoFocus = false }) {
   const [value, setValue] = useState("");
   const ref = useRef(null);
   // phones and tablets: Enter makes a new line, the arrow button sends
@@ -45,6 +45,7 @@ export default function ChatInput({ onSend, disabled = false }) {
         value={value}
         maxLength={4000}
         enterKeyHint="enter"
+        autoFocus={autoFocus}
         onChange={(e) => {
           setValue(e.target.value);
           resize();
