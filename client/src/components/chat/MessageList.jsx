@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import Markdown from "./Markdown";
 
 const NEAR_BOTTOM_PX = 80;  // closer than this counts as "at the bottom"
 const SHOW_BUTTON_PX = 300; // scrolled further up than this (about 3 messages) shows the arrow
@@ -39,30 +40,25 @@ export default function MessageList({ messages, isLoading }) {
         className="absolute inset-0 overflow-y-auto px-4 py-6"
       >
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
-          {messages.map((m) => (
-            <div
-              key={m.id}
-              className={m.role === "user" ? "flex justify-end" : "flex justify-start"}
-            >
-              <div
-                className={`max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 ${
-                  m.role === "user"
-                    ? "bg-indigo-500 text-white"
-                    : "bg-zinc-800 text-zinc-100"
-                }`}
-              >
-                {m.content}
+          {messages.map((m) =>
+            m.role === "user" ? (
+              <div key={m.id} className="flex justify-end">
+                <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl bg-indigo-500 px-4 py-2.5 text-white">
+                  {m.content}
+                </div>
               </div>
-            </div>
-          ))}
+            ) : (
+              <div key={m.id} className="min-w-0 px-1 text-zinc-100">
+                <Markdown>{m.content}</Markdown>
+              </div>
+            )
+          )}
 
           {isLoading && (
-            <div className="flex justify-start">
-              <div className="flex items-center gap-1 rounded-2xl bg-zinc-800 px-4 py-4">
-                <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.3s]" />
-                <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.15s]" />
-                <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400" />
-              </div>
+            <div className="flex items-center gap-1 px-1 py-3">
+              <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.3s]" />
+              <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.15s]" />
+              <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400" />
             </div>
           )}
         </div>
