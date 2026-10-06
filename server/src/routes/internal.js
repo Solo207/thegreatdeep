@@ -1,6 +1,7 @@
 import { Router } from "express";
 import crypto from "crypto";
 import { publish } from "../lib/events.js";
+import { clearPending } from "../lib/pending.js";
 
 const router = Router();
 
@@ -36,6 +37,7 @@ router.post("/messages", (req, res) => {
 
   // n8n reports a failure
   if (error) {
+    clearPending(userId, chatId); // (1) the wait is over
     const delivered = publish(userId, "reply_failed", { chatId });
     return res.json({ ok: true, delivered });
   }
@@ -44,6 +46,7 @@ router.post("/messages", (req, res) => {
 
   // a callback that only says "finished", with no message
   if (!message && isDone) {
+    clearPending(userId, chatId); // (2) the wait is over
     const delivered = publish(userId, "reply", { chatId, message: null, done: true });
     return res.json({ ok: true, delivered });
   }
@@ -64,6 +67,9 @@ router.post("/messages", (req, res) => {
     typeof message.id === "string" && message.id.length > 0 && message.id.length <= 100
       ? message.id
       : crypto.randomUUID();
+
+  // (3) the last message of a run also ends the wait
+  if (isDone) clearPending(userId, chatId);
 
   const delivered = publish(userId, "reply", {
     chatId,

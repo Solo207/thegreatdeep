@@ -35,8 +35,13 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
 
     getChat(chatId)
       .then((data) => {
-        if (ignore) return;
+                if (ignore) return;
         setMessages(data.messages);
+        if (data.pending) {
+          // n8n is still working on this chat: lock again and show the same words
+          setIsWaiting(true);
+          setWords(data.pending.words ?? []);
+        }
         setStatus("ready");
       })
       .catch((err) => {

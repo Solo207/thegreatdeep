@@ -1,6 +1,12 @@
 import { Router } from "express";
 import requireAuth from "../middleware/requireAuth.js";
 import { callN8n } from "../lib/n8n.js";
+import {
+  markPending,
+  setPendingWords,
+  clearPending,
+  getPending,
+} from "../lib/pending.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -70,6 +76,7 @@ router.get("/:chatId", async (req, res) => {
   if (!UUID_RE.test(chatId)) return res.status(404).json({ error: "Not found" });
   try {
     const data = await callN8n("chat-get", { userId: req.user.id, chatId });
+    const waiting = getPending(req.user.id, chatId);
     res.json({
       chat: { id: data.chat.id, title: data.chat.title },
       messages: (data.messages ?? []).map((m) => ({
@@ -78,6 +85,8 @@ router.get("/:chatId", async (req, res) => {
         content: m.content,
         createdAt: m.createdAt,
       })),
+      // not null while n8n is still working on this chat
+      pending: waiting ? { words: waiting.words } : null,
     });
   } catch (err) {
     fail(res, err);
