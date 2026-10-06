@@ -41,13 +41,14 @@ export function getChat(chatId) {
   return request(`/${chatId}`);
 }
 
-// Send a message. Returns the assistant's reply: { id, role, content, createdAt }
-export async function sendMessage(chatId, content) {
-  const data = await request(`/${chatId}/messages`, {
+// Send a message. The server answers with either
+//   { message }  the reply is already here (old synchronous workflow), or
+//   { words }    accepted, the reply arrives later through the event stream
+export function sendMessage(chatId, content) {
+  return request(`/${chatId}/messages`, {
     method: "POST",
     body: JSON.stringify({ content }),
   });
-  return data.message;
 }
 
 // Load the chat list. Returns { chats: [{ id, title, date }], hasMore }

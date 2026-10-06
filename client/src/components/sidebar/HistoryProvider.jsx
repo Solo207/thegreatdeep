@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getHistory } from "../../lib/api/chats";
 import { HistoryContext } from "./history-context";
+import { useEvents } from "../events/events-context";
 
 export default function HistoryProvider({ children }) {
   const [chats, setChats] = useState([]);
@@ -31,6 +32,17 @@ export default function HistoryProvider({ children }) {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  const { subscribe } = useEvents();
+
+  // when a reply arrives, the list (titles, order) may have changed
+  useEffect(
+    () =>
+      subscribe((evt) => {
+        if (evt.type === "reply") refresh();
+      }),
+    [subscribe, refresh]
+  );
 
   return (
     <HistoryContext.Provider value={{ chats, hasMore, status, refresh, retry }}>

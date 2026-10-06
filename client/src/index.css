@@ -8,8 +8,25 @@
 *:hover {
   scrollbar-color: #3f3f46 transparent;
 }
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
+}
+
+/* long equations scroll sideways instead of stretching the page */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25rem 0;
+}
+.katex {
+  font-size: 1.1em; /* KaTeX's default is a little large next to body text */
+}
+
+@keyframes word-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }

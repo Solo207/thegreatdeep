@@ -5,6 +5,7 @@ import HistoryProvider from "./sidebar/HistoryProvider";
 import useSidebarState from "./sidebar/useSidebarState";
 import useVisualViewportHeight from "../hooks/useVisualViewportHeight";
 import { SIDEBAR_SLIDE_MS } from "./sidebar/config";
+import EventsProvider from "./events/EventsProvider";
 
 export default function AppShell() {
   const {
@@ -20,6 +21,7 @@ export default function AppShell() {
   };
 
   return (
+    <EventsProvider>
     <HistoryProvider>
       <div
         style={{ height: viewportHeight }}
@@ -94,5 +96,6 @@ export default function AppShell() {
         </div>
       </div>
     </HistoryProvider>
+    </EventsProvider>
   );
 }

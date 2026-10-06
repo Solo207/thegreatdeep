@@ -29,13 +29,15 @@ function ChatScreen({ chatId }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const {
+    const {
     status,
     errorKind,
     messages,
     retry,
     send,
-    isSending,
+    isWaiting,
+    inputLocked,
+    words,
     sendError,
     retrySend,
   } = useChat(chatId, firstMessage, refresh);
@@ -67,8 +69,7 @@ function ChatScreen({ chatId }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <MessageList messages={messages} isLoading={isSending} />
-
+      <MessageList messages={messages} isLoading={isWaiting} words={words} />
       <div className="px-4 pb-4">
         <div className="mx-auto w-full max-w-2xl">
           {sendError && (
@@ -82,7 +83,7 @@ function ChatScreen({ chatId }) {
               </button>
             </div>
           )}
-          <ChatInput onSend={send} disabled={isSending} />
+          <ChatInput onSend={send} disabled={inputLocked} />
         </div>
       </div>
     </div>

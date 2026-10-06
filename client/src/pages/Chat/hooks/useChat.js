@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { getChat, sendMessage } from "../../../lib/api/chats";
+import { useEvents } from "../../../components/events/events-context";
+
+// false: you can keep typing and sending while n8n is still working.
+// true:  the input is locked until a reply arrives.
+const LOCK_INPUT_WHILE_WAITING = false;
 
 export default function useChat(chatId, firstMessage = null, onReply = null) {
+  const { subscribe } = useEvents();
+
   // loading history (skipped for a brand new chat, which has none)
   const [status, setStatus] = useState(firstMessage ? "ready" : "loading"); // loading | ready | error
   const [errorKind, setErrorKind] = useState(null);
@@ -12,12 +19,14 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
   );
   const [attempt, setAttempt] = useState(0);
 
-  // sending
-  const [isSending, setIsSending] = useState(Boolean(firstMessage));
+  // waiting for n8n
+  const [isWaiting, setIsWaiting] = useState(Boolean(firstMessage));
+  const [words, setWords] = useState([]);
   const [sendError, setSendError] = useState(null);
   const [failedText, setFailedText] = useState(null);
 
   const startedRef = useRef(false);
+  const lastSentRef = useRef(null);
 
   // load history (not needed when we arrive with a first message)
   useEffect(() => {
@@ -41,6 +50,26 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
     };
   }, [chatId, attempt, firstMessage]);
 
+  // Every message pushed by the server for THIS chat goes to the bottom,
+  // however many arrive. Messages for other chats are ignored here.
+  useEffect(() => {
+    return subscribe((evt) => {
+      if (evt.chatId !== chatId) return;
+
+      if (evt.type === "reply") {
+        // "key" is a private label so the same message can appear twice if n8n sends it twice
+        setMessages((prev) => [...prev, { ...evt.message, key: crypto.randomUUID() }]);
+        setIsWaiting(false);
+        setWords([]);
+      } else if (evt.type === "reply_failed") {
+        setIsWaiting(false);
+        setWords([]);
+        setSendError("failed");
+        setFailedText(lastSentRef.current); // so Retry can resend it
+      }
+    });
+  }, [subscribe, chatId]);
+
   // send the first message, exactly once
   useEffect(() => {
     if (!firstMessage || startedRef.current) return;
@@ -54,25 +83,33 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
     setAttempt((n) => n + 1);
   };
 
-  // ask the server for a reply to `text`
+  // hand `text` to the server
   async function deliver(text) {
-    setIsSending(true);
+    lastSentRef.current = text;
+    setIsWaiting(true);
+    setWords([]);
     setSendError(null);
     try {
-      const reply = await sendMessage(chatId, text);
-      setMessages((prev) => [...prev, reply]);
-      onReply?.();
+      const result = await sendMessage(chatId, text);
+      if (result.message) {
+        // old synchronous workflow: the reply is already here
+        setMessages((prev) => [...prev, result.message]);
+        setIsWaiting(false);
+        onReply?.();
+      } else {
+        // asynchronous workflow: replies arrive through the event stream
+        setWords(result.words ?? []);
+      }
     } catch (err) {
       setSendError(err.kind ?? "failed");
       setFailedText(text);
-    } finally {
-      setIsSending(false);
+      setIsWaiting(false);
     }
   }
 
   // a new message from the user
   const send = (text) => {
-    if (isSending) return;
+    if (LOCK_INPUT_WHILE_WAITING && isWaiting) return;
     setFailedText(null);
     setMessages((prev) => [
       ...prev,
@@ -83,7 +120,7 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
 
   // resend the message that failed (its bubble is already on screen)
   const retrySend = () => {
-    if (isSending || failedText === null) return;
+    if (failedText === null) return;
     const text = failedText;
     setFailedText(null);
     deliver(text);
@@ -95,7 +132,9 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
     messages,
     retry,
     send,
-    isSending,
+    isWaiting,
+    inputLocked: LOCK_INPUT_WHILE_WAITING && isWaiting,
+    words,
     sendError,
     retrySend,
   };

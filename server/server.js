@@ -5,7 +5,9 @@ import { toNodeHandler } from "better-auth/node";
 import { auth } from "./src/auth.js";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import chatsRouter from "./src/routes/chats.js"; // <-- added
+import chatsRouter from "./src/routes/chats.js"; 
+import eventsRouter from "./src/routes/events.js";
+import internalRouter from "./src/routes/internal.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -25,6 +27,13 @@ app.all("/api/auth/*splat", toNodeHandler(auth));
 app.use(express.json({ limit: "50kb" }));
 
 app.get("/api/health", (req, res) => res.json({ ok: true }));
+
+app.use("/api/internal", internalRouter);
+app.use(
+  "/api/events",
+  rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: true, legacyHeaders: false }),
+  eventsRouter
+);
 
 // chats (every route inside requires a signed-in user)   <-- added
 app.use(

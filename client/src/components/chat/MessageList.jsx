@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import Markdown from "./Markdown";
+import WaitingIndicator from "./WaitingIndicator";
 
 const NEAR_BOTTOM_PX = 80;  // closer than this counts as "at the bottom"
 const SHOW_BUTTON_PX = 300; // scrolled further up than this (about 3 messages) shows the arrow
 
-export default function MessageList({ messages, isLoading }) {
+export default function MessageList({ messages, isLoading, words = [] }) {
   const scrollerRef = useRef(null);
   const nearBottomRef = useRef(true);
   const firstRenderRef = useRef(true);
@@ -42,25 +43,19 @@ export default function MessageList({ messages, isLoading }) {
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
           {messages.map((m) =>
             m.role === "user" ? (
-              <div key={m.id} className="flex justify-end">
+              <div key={m.key ?? m.id} className="flex justify-end">
                 <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl bg-indigo-500 px-4 py-2.5 text-white">
                   {m.content}
                 </div>
               </div>
             ) : (
-              <div key={m.id} className="min-w-0 px-1 text-zinc-100">
+              <div key={m.key ?? m.id} className="min-w-0 px-1 text-zinc-100">
                 <Markdown>{m.content}</Markdown>
               </div>
             )
           )}
 
-          {isLoading && (
-            <div className="flex items-center gap-1 px-1 py-3">
-              <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.3s]" />
-              <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.15s]" />
-              <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400" />
-            </div>
-          )}
+                    {isLoading && <WaitingIndicator words={words} />}
         </div>
       </div>
 

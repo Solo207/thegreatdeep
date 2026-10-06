@@ -1,8 +1,21 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
+import "katex/contrib/mhchem"; // chemistry shorthand, e.g. \ce{H2O}
 
-const remarkPlugins = [remarkGfm];
+const remarkPlugins = [remarkGfm, remarkMath];
+// throwOnError: false means a broken formula is shown as text instead of crashing the reply
+const rehypePlugins = [[rehypeKatex, { throwOnError: false, strict: false }]];
 
+// Many AI models write math as \( ... \) and \[ ... \].
+// Convert those to $ ... $ and $$ ... $$, which the renderer understands.
+function normalizeMath(text) {
+  return text
+    .replace(/\\\[([\s\S]*?)\\\]/g, (_, m) => `$$${m}$$`)
+    .replace(/\\\(([\s\S]*?)\\\)/g, (_, m) => `$${m}$`);
+}
 // How each markdown element looks
 const components = {
   h1: ({ children }) => (
@@ -90,8 +103,12 @@ const components = {
 export default function Markdown({ children }) {
   return (
     <div className="break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-      <ReactMarkdown remarkPlugins={remarkPlugins} components={components}>
-        {children}
+      <ReactMarkdown
+        remarkPlugins={remarkPlugins}
+        rehypePlugins={rehypePlugins}
+        components={components}
+      >
+        {normalizeMath(children)}
       </ReactMarkdown>
     </div>
   );

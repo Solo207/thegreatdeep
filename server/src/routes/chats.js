@@ -10,6 +10,20 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const isValidText = (t) =>
   typeof t === "string" && t.trim().length > 0 && t.length <= MAX_LEN;
 
+// n8n may answer at once with status words like [{ "text": "Mulling" }, { "text": "Processing" }]
+function cleanWords(data) {
+  const list = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.words)
+    ? data.words
+    : [];
+  return list
+    .map((w) => (typeof w === "string" ? w : w?.text))
+    .filter((w) => typeof w === "string" && w.trim())
+    .map((w) => w.trim().slice(0, 40))
+    .slice(0, 10);
+}
+
 function fail(res, err) {
   console.error("chat error:", err.message);
   if (err.status === 404) return res.status(404).json({ error: "Not found" });
@@ -71,23 +85,35 @@ router.get("/:chatId", async (req, res) => {
 });
 
 // 3. send a message
+// New way: n8n answers at once ("started" + status words) and the reply arrives later
+// through /api/events. Old way: n8n answers with the reply itself (still supported).
 router.post("/:chatId/messages", async (req, res) => {
   const { chatId } = req.params;
   if (!UUID_RE.test(chatId)) return res.status(404).json({ error: "Not found" });
 
   const { content } = req.body ?? {};
   if (!isValidText(content)) return res.status(400).json({ error: "Invalid message" });
-
+ 
   try {
     const data = await callN8n("chat-message", {
       userId: req.user.id,
       chatId,
       message: content.trim(),
+      callbackUrl: process.env.PUBLIC_BASE_URL
+        ? `${process.env.PUBLIC_BASE_URL}/api/internal/messages`
+        : undefined,
     });
-    const m = data.message;
-    res.status(201).json({
-      message: { id: m.id, role: m.role, content: m.content, createdAt: m.createdAt },
-    });
+
+    if (data?.message) {
+      // old synchronous workflow: the reply is already here
+      const m = data.message;
+      return res.status(201).json({
+        message: { id: m.id, role: m.role, content: m.content, createdAt: m.createdAt },
+      });
+    }
+
+    // new asynchronous workflow: accepted, the reply comes later
+    res.status(202).json({ words: cleanWords(data) });
   } catch (err) {
     fail(res, err);
   }
