@@ -4,7 +4,7 @@ import { useEvents } from "../../../components/events/events-context";
 
 // false: you can keep typing and sending while n8n is still working.
 // true:  the input is locked until a reply arrives.
-const LOCK_INPUT_WHILE_WAITING = false;
+const LOCK_INPUT_WHILE_WAITING = true;
 
 export default function useChat(chatId, firstMessage = null, onReply = null) {
   const { subscribe } = useEvents();
@@ -57,10 +57,18 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
       if (evt.chatId !== chatId) return;
 
       if (evt.type === "reply") {
-        // "key" is a private label so the same message can appear twice if n8n sends it twice
-        setMessages((prev) => [...prev, { ...evt.message, key: crypto.randomUUID() }]);
-        setIsWaiting(false);
-        setWords([]);
+        // a message from n8n goes to the bottom, however many arrive
+        if (evt.message) {
+          setMessages((prev) => [
+            ...prev,
+            { ...evt.message, key: crypto.randomUUID() },
+          ]);
+        }
+        // only the final callback ("done": true) ends the waiting
+        if (evt.done) {
+          setIsWaiting(false);
+          setWords([]);
+        }
       } else if (evt.type === "reply_failed") {
         setIsWaiting(false);
         setWords([]);

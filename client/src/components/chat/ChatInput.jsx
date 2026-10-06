@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useMediaQuery from "../../hooks/useMediaQuery";
 
 export default function ChatInput({ onSend, disabled = false, autoFocus = false }) {
@@ -6,6 +6,13 @@ export default function ChatInput({ onSend, disabled = false, autoFocus = false 
   const ref = useRef(null);
   // phones and tablets: Enter makes a new line, the arrow button sends
   const isTouch = useMediaQuery("(pointer: coarse)");
+
+    // when the box is unlocked again, put the cursor back in it
+  const wasDisabled = useRef(disabled);
+  useEffect(() => {
+    if (wasDisabled.current && !disabled) ref.current?.focus();
+    wasDisabled.current = disabled;
+  }, [disabled]);
 
   const resize = () => {
     const el = ref.current;
@@ -45,13 +52,14 @@ export default function ChatInput({ onSend, disabled = false, autoFocus = false 
         value={value}
         maxLength={4000}
         enterKeyHint="enter"
-        autoFocus={autoFocus}
+        autoFocus={autoFocus}        
         onChange={(e) => {
           setValue(e.target.value);
-          resize();
+          resize();          
         }}
         onKeyDown={handleKeyDown}
-        placeholder="Ask anything..."
+        disabled={disabled}
+        placeholder={disabled ? "Waiting for the reply..." : "Ask anything..."}
         className="max-h-[200px] w-full resize-none bg-transparent px-1 text-zinc-100 placeholder-zinc-500 outline-none"
       />
       <div className="mt-2 flex justify-end">

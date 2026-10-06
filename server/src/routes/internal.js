@@ -18,12 +18,13 @@ function secretOk(req) {
   );
 }
 
-// n8n calls this when it has finished (or failed). It never touches the database,
-// it only pushes the result to the screens that user has open.
+// n8n calls this for every message it wants shown, and once more with
+// "done": true when it has finished. It never touches the database,
+// it only pushes to the screens that user has open.
 router.post("/messages", (req, res) => {
   if (!secretOk(req)) return res.status(401).json({ error: "Unauthorized" });
 
-  const { userId, chatId, message, error } = req.body ?? {};
+  const { userId, chatId, message, error, done } = req.body ?? {};
   if (
     typeof userId !== "string" ||
     userId.length === 0 ||
@@ -39,7 +40,15 @@ router.post("/messages", (req, res) => {
     return res.json({ ok: true, delivered });
   }
 
-  // n8n delivers a reply
+  const isDone = done === true;
+
+  // a callback that only says "finished", with no message
+  if (!message && isDone) {
+    const delivered = publish(userId, "reply", { chatId, message: null, done: true });
+    return res.json({ ok: true, delivered });
+  }
+
+  // n8n delivers a message
   if (
     !message ||
     message.role !== "assistant" ||
@@ -50,8 +59,7 @@ router.post("/messages", (req, res) => {
     return res.status(400).json({ error: "Bad message" });
   }
 
-  // the id is only a label for the page, so be forgiving: use it if it looks sane,
-  // otherwise make one up
+  // the id is only a label for the page, so be forgiving
   const id =
     typeof message.id === "string" && message.id.length > 0 && message.id.length <= 100
       ? message.id
@@ -65,6 +73,7 @@ router.post("/messages", (req, res) => {
       content: message.content,
       createdAt: String(message.createdAt ?? ""),
     },
+    done: isDone,
   });
   res.json({ ok: true, delivered });
 });
