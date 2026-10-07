@@ -48,7 +48,11 @@ router.post("/messages", (req, res) => {
   }
 
   // accept true and "true" (n8n sometimes turns booleans into text)
-  const isDone = done === true || done === "true";
+  const isDone =
+    done === true ||
+    done === "true" ||
+    message?.done === true ||
+    message?.done === "true";
 
   // callbacks from n8n are always assistant messages, so don't trust the role field
   const normalized = message ? normalizeMessage({ ...message, role: "assistant" }) : null;
