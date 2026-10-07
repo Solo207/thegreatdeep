@@ -69,7 +69,7 @@ function ChatScreen({ chatId }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <MessageList messages={messages} isLoading={isWaiting} words={words} />
+      <MessageList messages={messages} isLoading={isWaiting} words={words} onSelect={send} />
       <div className="px-4 pb-4">
         <div className="mx-auto w-full max-w-2xl">
           {sendError && (

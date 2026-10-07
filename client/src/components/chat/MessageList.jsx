@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from "react";
-import Markdown from "./Markdown";
+import { Fragment, useEffect, useRef, useState } from "react";
+import BotMessage from "./messages/BotMessage";
 import WaitingIndicator from "./WaitingIndicator";
+import { bodyOf } from "./messages/utils";
 
 const NEAR_BOTTOM_PX = 80;  // closer than this counts as "at the bottom"
 const SHOW_BUTTON_PX = 300; // scrolled further up than this (about 3 messages) shows the arrow
 
-export default function MessageList({ messages, isLoading, words = [] }) {
+export default function MessageList({ messages, isLoading, words = [], onSelect }) {
   const scrollerRef = useRef(null);
   const nearBottomRef = useRef(true);
   const firstRenderRef = useRef(true);
@@ -33,6 +34,17 @@ export default function MessageList({ messages, isLoading, words = [] }) {
     }
   }, [messages, isLoading]);
 
+  // the waiting line goes right under the user's latest message,
+  // so the bot's messages appear below it as they arrive
+  let lastUserIndex = -1;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === "user") {
+      lastUserIndex = i;
+      break;
+    }
+  }
+  const indicatorAfter = lastUserIndex === -1 ? messages.length - 1 : lastUserIndex;
+
   return (
     <div className="relative min-h-0 flex-1">
       <div
@@ -41,21 +53,34 @@ export default function MessageList({ messages, isLoading, words = [] }) {
         className="absolute inset-0 overflow-y-auto px-4 py-6"
       >
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
-          {messages.map((m) =>
-            m.role === "user" ? (
-              <div key={m.key ?? m.id} className="flex justify-end">
-                <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl bg-indigo-500 px-4 py-2.5 text-white">
-                  {m.content}
+          {messages.map((m, i) => (
+            <Fragment key={m.key ?? m.id}>
+              {m.role === "user" ? (
+                <div className="flex justify-end">
+                  <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl bg-indigo-500 px-4 py-2.5 text-white">
+                    {bodyOf(m)}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div key={m.key ?? m.id} className="min-w-0 px-1 text-zinc-100">
-                <Markdown>{m.content}</Markdown>
-              </div>
-            )
-          )}
+              ) : (
+                <div className="min-w-0 px-1 text-zinc-100">
+                  <BotMessage
+                    message={m}
+                    // buttons and lists only work while they are the newest message
+                    active={i === messages.length - 1 && !isLoading}
+                    // what the user sent right after this message (their choice)
+                    nextUserText={
+                      messages[i + 1]?.role === "user" ? bodyOf(messages[i + 1]) : null
+                    }
+                    onSelect={onSelect}
+                  />
+                </div>
+              )}
 
-                    {isLoading && <WaitingIndicator words={words} />}
+              {isLoading && i === indicatorAfter && <WaitingIndicator words={words} />}
+            </Fragment>
+          ))}
+
+          {isLoading && messages.length === 0 && <WaitingIndicator words={words} />}
         </div>
       </div>
 

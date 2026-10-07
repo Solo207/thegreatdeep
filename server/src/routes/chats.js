@@ -7,6 +7,7 @@ import {
   clearPending,
   getPending,
 } from "../lib/pending.js";
+import { normalizeMessage } from "../lib/messages.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -28,6 +29,16 @@ function cleanWords(data) {
     .filter((w) => typeof w === "string" && w.trim())
     .map((w) => w.trim().slice(0, 40))
     .slice(0, 10);
+}
+
+// which button or list row the user tapped (its label is sent as the message text)
+function cleanSelection(s) {
+  if (!s || typeof s !== "object") return null;
+  if (typeof s.id !== "string" || !s.id || s.id.length > 100) return null;
+  if (s.source !== "buttons" && s.source !== "list") return null;
+  const messageId =
+    typeof s.messageId === "string" && s.messageId.length <= 100 ? s.messageId : null;
+  return { id: s.id, source: s.source, messageId };
 }
 
 function fail(res, err) {
@@ -79,12 +90,7 @@ router.get("/:chatId", async (req, res) => {
     const waiting = getPending(req.user.id, chatId);
     res.json({
       chat: { id: data.chat.id, title: data.chat.title },
-      messages: (data.messages ?? []).map((m) => ({
-        id: m.id,
-        role: m.role,
-        content: m.content,
-        createdAt: m.createdAt,
-      })),
+      messages: (data.messages ?? []).map(normalizeMessage).filter(Boolean),
       // not null while n8n is still working on this chat
       pending: waiting ? { words: waiting.words } : null,
     });
@@ -94,36 +100,41 @@ router.get("/:chatId", async (req, res) => {
 });
 
 // 3. send a message
-// New way: n8n answers at once ("started" + status words) and the reply arrives later
-// through /api/events. Old way: n8n answers with the reply itself (still supported).
 router.post("/:chatId/messages", async (req, res) => {
   const { chatId } = req.params;
   if (!UUID_RE.test(chatId)) return res.status(404).json({ error: "Not found" });
 
   const { content } = req.body ?? {};
   if (!isValidText(content)) return res.status(400).json({ error: "Invalid message" });
- 
+  const selection = cleanSelection(req.body?.selection);
+
+  const userId = req.user.id;
+  markPending(userId, chatId); // marked BEFORE calling n8n so a very fast "done" can't be missed
+
   try {
     const data = await callN8n("chat-message", {
-      userId: req.user.id,
+      userId,
       chatId,
       message: content.trim(),
+      selection, // null unless the user tapped a button or list row
       callbackUrl: process.env.PUBLIC_BASE_URL
         ? `${process.env.PUBLIC_BASE_URL}/api/internal/messages`
         : undefined,
     });
 
     if (data?.message) {
-      // old synchronous workflow: the reply is already here
-      const m = data.message;
-      return res.status(201).json({
-        message: { id: m.id, role: m.role, content: m.content, createdAt: m.createdAt },
-      });
+      // old synchronous workflow: the reply is already here, nothing to wait for
+      clearPending(userId, chatId);
+      const normalized = normalizeMessage(data.message);
+      if (!normalized) throw new Error("n8n returned an unusable message");
+      return res.status(201).json({ message: normalized });
     }
 
-    // new asynchronous workflow: accepted, the reply comes later
-    res.status(202).json({ words: cleanWords(data) });
+    const words = cleanWords(data);
+    setPendingWords(userId, chatId, words);
+    res.status(202).json({ words });
   } catch (err) {
+    clearPending(userId, chatId);
     fail(res, err);
   }
 });

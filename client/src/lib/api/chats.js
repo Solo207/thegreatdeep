@@ -41,13 +41,12 @@ export function getChat(chatId) {
   return request(`/${chatId}`);
 }
 
-// Send a message. The server answers with either
-//   { message }  the reply is already here (old synchronous workflow), or
-//   { words }    accepted, the reply arrives later through the event stream
-export function sendMessage(chatId, content) {
+// Send a message. `selection` is set when the user tapped a button or list row:
+// { id, source: "buttons" | "list", messageId }
+export function sendMessage(chatId, content, selection = null) {
   return request(`/${chatId}/messages`, {
     method: "POST",
-    body: JSON.stringify({ content }),
+    body: JSON.stringify({ content, selection }),
   });
 }
 

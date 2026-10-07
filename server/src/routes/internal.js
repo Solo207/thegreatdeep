@@ -2,11 +2,11 @@ import { Router } from "express";
 import crypto from "crypto";
 import { publish } from "../lib/events.js";
 import { clearPending } from "../lib/pending.js";
+import { normalizeMessage } from "../lib/messages.js";
 
 const router = Router();
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const MAX_REPLY_CHARS = 30_000;
 
 // Compare the secret without leaking timing information
 function secretOk(req) {
@@ -51,34 +51,15 @@ router.post("/messages", (req, res) => {
     return res.json({ ok: true, delivered });
   }
 
-  // n8n delivers a message
-  if (
-    !message ||
-    message.role !== "assistant" ||
-    typeof message.content !== "string" ||
-    message.content.length === 0 ||
-    message.content.length > MAX_REPLY_CHARS
-  ) {
-    return res.status(400).json({ error: "Bad message" });
-  }
+  // n8n delivers a message of any type (text, buttons, list, links)
+  const normalized = message?.role === "assistant" ? normalizeMessage(message) : null;
+  if (!normalized) return res.status(400).json({ error: "Bad message" });
 
-  // the id is only a label for the page, so be forgiving
-  const id =
-    typeof message.id === "string" && message.id.length > 0 && message.id.length <= 100
-      ? message.id
-      : crypto.randomUUID();
-
-  // (3) the last message of a run also ends the wait
   if (isDone) clearPending(userId, chatId);
 
   const delivered = publish(userId, "reply", {
     chatId,
-    message: {
-      id,
-      role: "assistant",
-      content: message.content,
-      createdAt: String(message.createdAt ?? ""),
-    },
+    message: normalized,
     done: isDone,
   });
   res.json({ ok: true, delivered });

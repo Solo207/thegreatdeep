@@ -2,9 +2,15 @@ import { useEffect, useRef, useState } from "react";
 import { getChat, sendMessage } from "../../../lib/api/chats";
 import { useEvents } from "../../../components/events/events-context";
 
-// false: you can keep typing and sending while n8n is still working.
-// true:  the input is locked until a reply arrives.
+// true: the input is locked until n8n sends "done". false: you can keep sending.
 const LOCK_INPUT_WHILE_WAITING = true;
+
+const userMessage = (text) => ({
+  id: crypto.randomUUID(),
+  role: "user",
+  type: "text",
+  content: { body: text },
+});
 
 export default function useChat(chatId, firstMessage = null, onReply = null) {
   const { subscribe } = useEvents();
@@ -13,9 +19,7 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
   const [status, setStatus] = useState(firstMessage ? "ready" : "loading"); // loading | ready | error
   const [errorKind, setErrorKind] = useState(null);
   const [messages, setMessages] = useState(() =>
-    firstMessage
-      ? [{ id: crypto.randomUUID(), role: "user", content: firstMessage }]
-      : []
+    firstMessage ? [userMessage(firstMessage)] : []
   );
   const [attempt, setAttempt] = useState(0);
 
@@ -23,7 +27,7 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
   const [isWaiting, setIsWaiting] = useState(Boolean(firstMessage));
   const [words, setWords] = useState([]);
   const [sendError, setSendError] = useState(null);
-  const [failedText, setFailedText] = useState(null);
+  const [failed, setFailed] = useState(null); // { text, selection } of the send that failed
 
   const startedRef = useRef(false);
   const lastSentRef = useRef(null);
@@ -35,7 +39,7 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
 
     getChat(chatId)
       .then((data) => {
-                if (ignore) return;
+        if (ignore) return;
         setMessages(data.messages);
         if (data.pending) {
           // n8n is still working on this chat: lock again and show the same words
@@ -56,20 +60,15 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
   }, [chatId, attempt, firstMessage]);
 
   // Every message pushed by the server for THIS chat goes to the bottom,
-  // however many arrive. Messages for other chats are ignored here.
+  // however many arrive. Only a message carrying "done" ends the waiting.
   useEffect(() => {
     return subscribe((evt) => {
       if (evt.chatId !== chatId) return;
 
       if (evt.type === "reply") {
-        // a message from n8n goes to the bottom, however many arrive
         if (evt.message) {
-          setMessages((prev) => [
-            ...prev,
-            { ...evt.message, key: crypto.randomUUID() },
-          ]);
+          setMessages((prev) => [...prev, { ...evt.message, key: crypto.randomUUID() }]);
         }
-        // only the final callback ("done": true) ends the waiting
         if (evt.done) {
           setIsWaiting(false);
           setWords([]);
@@ -78,7 +77,7 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
         setIsWaiting(false);
         setWords([]);
         setSendError("failed");
-        setFailedText(lastSentRef.current); // so Retry can resend it
+        setFailed(lastSentRef.current); // so Retry can resend it
       }
     });
   }, [subscribe, chatId]);
@@ -96,14 +95,14 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
     setAttempt((n) => n + 1);
   };
 
-  // hand `text` to the server
-  async function deliver(text) {
-    lastSentRef.current = text;
+  // hand a message to the server
+  async function deliver(text, selection = null) {
+    lastSentRef.current = { text, selection };
     setIsWaiting(true);
     setWords([]);
     setSendError(null);
     try {
-      const result = await sendMessage(chatId, text);
+      const result = await sendMessage(chatId, text, selection);
       if (result.message) {
         // old synchronous workflow: the reply is already here
         setMessages((prev) => [...prev, result.message]);
@@ -115,28 +114,25 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
       }
     } catch (err) {
       setSendError(err.kind ?? "failed");
-      setFailedText(text);
+      setFailed({ text, selection });
       setIsWaiting(false);
     }
   }
 
-  // a new message from the user
-  const send = (text) => {
+  // a new message from the user (typed, or a tapped button or list row)
+  const send = (text, selection = null) => {
     if (LOCK_INPUT_WHILE_WAITING && isWaiting) return;
-    setFailedText(null);
-    setMessages((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), role: "user", content: text },
-    ]);
-    deliver(text);
+    setFailed(null);
+    setMessages((prev) => [...prev, userMessage(text)]);
+    deliver(text, selection);
   };
 
   // resend the message that failed (its bubble is already on screen)
   const retrySend = () => {
-    if (failedText === null) return;
-    const text = failedText;
-    setFailedText(null);
-    deliver(text);
+    if (!failed) return;
+    const { text, selection } = failed;
+    setFailed(null);
+    deliver(text, selection);
   };
 
   return {
