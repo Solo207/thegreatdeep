@@ -1,20 +1,26 @@
 import { useState } from "react";
 import Markdown from "../Markdown";
 import BottomSheet from "./BottomSheet";
+import Radio from "./Radio";
 
-// An outlined box holding the question and a button that opens the options.
-// After a choice, the button shows what was picked.
+// An outlined box with the question and a button that opens the options.
+// Picking a row only highlights it; the Send button in the panel sends it.
+// After sending, the button shows what was picked.
 export default function ListMessage({ message, active, chosenText, onSelect }) {
   const [open, setOpen] = useState(false);
+  const [pickedId, setPickedId] = useState(null); // highlighted in the panel, not sent yet
   const { body, buttonLabel, sections = [] } = message.content;
 
+  const allRows = sections.flatMap((s) => s.rows);
   // the chosen row is the one whose title the user sent next
-  let chosen = null;
-  if (chosenText) {
-    for (const s of sections) {
-      for (const r of s.rows) if (r.title === chosenText) chosen = r;
-    }
-  }
+  const chosen = chosenText ? allRows.find((r) => r.title === chosenText) ?? null : null;
+  const picked = allRows.find((r) => r.id === pickedId) ?? null;
+
+  const send = () => {
+    if (!picked) return;
+    setOpen(false);
+    onSelect(picked.title, { id: picked.id, source: "list", messageId: message.id });
+  };
 
   return (
     <div className="max-w-md rounded-2xl border border-zinc-700 bg-zinc-900/60 p-4">
@@ -48,7 +54,21 @@ export default function ListMessage({ message, active, chosenText, onSelect }) {
       </button>
 
       {open && (
-        <BottomSheet title={buttonLabel} onClose={() => setOpen(false)}>
+        <BottomSheet
+          title={buttonLabel}
+          onClose={() => setOpen(false)}
+          footer={
+            active ? (
+              <button
+                onClick={send}
+                disabled={!picked}
+                className="w-full cursor-pointer rounded-xl bg-indigo-500 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-500"
+              >
+                Send
+              </button>
+            ) : null
+          }
+        >
           {sections.map((section, si) => (
             <div key={si}>
               {section.title && (
@@ -57,31 +77,29 @@ export default function ListMessage({ message, active, chosenText, onSelect }) {
                 </p>
               )}
               {section.rows.map((row) => {
-                const isChosen = chosen?.id === row.id;
+                const selected = chosen ? chosen.id === row.id : picked?.id === row.id;
                 return (
                   <button
                     key={row.id}
                     disabled={!active}
-                    onClick={() => {
-                      setOpen(false);
-                      onSelect(row.title, {
-                        id: row.id,
-                        source: "list",
-                        messageId: message.id,
-                      });
-                    }}
-                    className={`block w-full px-4 py-3 text-left transition-colors ${
-                      isChosen
+                    onClick={() => setPickedId(row.id)}
+                    className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors ${
+                      selected
                         ? "bg-indigo-500/15"
                         : active
                         ? "cursor-pointer hover:bg-zinc-800"
                         : "cursor-not-allowed opacity-60"
                     }`}
                   >
-                    <span className="block font-medium">{row.title}</span>
-                    {row.description && (
-                      <span className="block text-sm text-zinc-400">{row.description}</span>
-                    )}
+                    <span className="mt-0.5">
+                      <Radio selected={selected} />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block font-medium">{row.title}</span>
+                      {row.description && (
+                        <span className="block text-sm text-zinc-400">{row.description}</span>
+                      )}
+                    </span>
                   </button>
                 );
               })}

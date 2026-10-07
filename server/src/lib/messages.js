@@ -1,10 +1,15 @@
 import crypto from "crypto";
 
-const TYPES = ["text", "buttons", "list", "links"];
+const TYPES = ["text", "buttons", "list", "links", "qa"];
+const INPUT_TYPES = ["text", "number", "email", "tel"];
 const MAX_BODY = 30_000;
 
 const cut = (v, max) => (typeof v === "string" ? v.slice(0, max) : "");
 const hasText = (v) => typeof v === "string" && v.trim().length > 0;
+const clampInt = (v, min, max, fallback) => {
+  const n = Math.floor(Number(v));
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
+};
 
 // content may arrive as an object, a JSON string, or (old messages) a plain string
 function parseContent(type, content) {
@@ -73,6 +78,46 @@ export function normalizeMessage(raw) {
       .slice(0, 10)
       .map((l, i) => ({ ...l, id: l.id || `link_${i + 1}` }));
     if (links.length > 0) content = { body, links };
+    else type = "text";
+  } else if (type === "qa") {
+    const seenQ = new Set();
+    const questions = (Array.isArray(c.questions) ? c.questions : [])
+      .slice(0, 10)
+      .map((q, qi) => {
+        // ids must be unique inside a message, so repeats get a suffix
+        let qid = cut(q?.id, 100) || `q${qi + 1}`;
+        if (seenQ.has(qid)) qid = `${qid}_${qi + 1}`;
+        seenQ.add(qid);
+
+        const seenO = new Set();
+        const options = (Array.isArray(q?.options) ? q.options : [])
+          .filter((o) => hasText(o?.id) && hasText(o?.label))
+          .slice(0, 10)
+          .map((o, oi) => {
+            let oid = o.id.slice(0, 100);
+            if (seenO.has(oid)) oid = `${oid}_${oi + 1}`;
+            seenO.add(oid);
+
+            const option = {
+              id: oid,
+              kind: o.kind === "input" ? "input" : "choice",
+              label: o.label.trim().slice(0, 120),
+            };
+            if (option.kind === "input") {
+              const inp = o.input && typeof o.input === "object" ? o.input : {};
+              option.input = {
+                placeholder: cut(inp.placeholder, 120),
+                inputType: INPUT_TYPES.includes(inp.inputType) ? inp.inputType : "text",
+                maxLength: clampInt(inp.maxLength, 1, 1000, 200),
+                required: inp.required !== false, // typing is required unless set to false
+              };
+            }
+            return option;
+          });
+        return { id: qid, text: cut(q?.text, 500).trim(), options };
+      })
+      .filter((q) => q.text && q.options.length > 0);
+    if (questions.length > 0) content = { body, questions };
     else type = "text";
   }
 

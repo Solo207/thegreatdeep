@@ -9,10 +9,10 @@ export default function ChatInput({ onSend, disabled = false, autoFocus = false 
 
     // when the box is unlocked again, put the cursor back in it
   const wasDisabled = useRef(disabled);
-  useEffect(() => {
-    if (wasDisabled.current && !disabled) ref.current?.focus();
+    useEffect(() => {
+    if (wasDisabled.current && !disabled && !isTouch) ref.current?.focus();
     wasDisabled.current = disabled;
-  }, [disabled]);
+  }, [disabled, isTouch]);
 
   const resize = () => {
     const el = ref.current;

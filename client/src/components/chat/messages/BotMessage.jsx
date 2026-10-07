@@ -2,6 +2,7 @@ import Markdown from "../Markdown";
 import ButtonsMessage from "./ButtonsMessage";
 import ListMessage from "./ListMessage";
 import LinksMessage from "./LinksMessage";
+import QaMessage from "./QaMessage";
 import { bodyOf } from "./utils";
 
 // Picks how a bot message looks, based on its "type"
@@ -32,6 +33,15 @@ export default function BotMessage({ message, active, nextUserText, onSelect }) 
       );
     case "links":
       return <LinksMessage message={message} body={bodyBlock} />;
+    case "qa":
+      return (
+        <QaMessage
+          message={message}
+          active={active}
+          answered={nextUserText !== null}
+          onSelect={onSelect}
+        />
+      );
     default:
       return bodyBlock;
   }

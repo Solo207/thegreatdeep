@@ -31,13 +31,27 @@ function cleanWords(data) {
     .slice(0, 10);
 }
 
-// which button or list row the user tapped (its label is sent as the message text)
+// what the user tapped or answered (the readable version is sent as the message text)
 function cleanSelection(s) {
   if (!s || typeof s !== "object") return null;
-  if (typeof s.id !== "string" || !s.id || s.id.length > 100) return null;
-  if (s.source !== "buttons" && s.source !== "list") return null;
   const messageId =
     typeof s.messageId === "string" && s.messageId.length <= 100 ? s.messageId : null;
+
+  if (s.source === "qa") {
+    const answers = (Array.isArray(s.answers) ? s.answers : [])
+      .slice(0, 10)
+      .map((a) => ({
+        questionId: typeof a?.questionId === "string" ? a.questionId.slice(0, 100) : "",
+        optionId: typeof a?.optionId === "string" ? a.optionId.slice(0, 100) : "",
+        kind: a?.kind === "input" ? "input" : "choice",
+        text: typeof a?.text === "string" ? a.text.slice(0, 1000) : undefined,
+      }))
+      .filter((a) => a.questionId && a.optionId);
+    return answers.length > 0 ? { source: "qa", messageId, answers } : null;
+  }
+
+  if (typeof s.id !== "string" || !s.id || s.id.length > 100) return null;
+  if (s.source !== "buttons" && s.source !== "list") return null;
   return { id: s.id, source: s.source, messageId };
 }
 
