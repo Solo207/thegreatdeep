@@ -4,7 +4,7 @@ import { FOCUS_EVENT } from "../../lib/keyboard";
 
 const MAX_LENGTH = 4000;
 
-export default function ChatInput({ onSend, disabled = false, autoFocus = false }) {
+export default function ChatInput({ onSend, disabled = false, autoFocus = false, onFocusChange }) {
   const [value, setValue] = useState("");
   const ref = useRef(null);
   // phones and tablets: Enter makes a new line, the arrow button sends
@@ -83,6 +83,8 @@ export default function ChatInput({ onSend, disabled = false, autoFocus = false 
         maxLength={MAX_LENGTH}
         enterKeyHint="enter"
         autoFocus={autoFocus}
+        onFocus={() => onFocusChange?.(true)}
+        onBlur={() => onFocusChange?.(false)}
         disabled={disabled}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authClient } from "../../lib/auth-client";
 import { createChat } from "../../lib/api/chats";
+import useMediaQuery from "../../hooks/useMediaQuery";
 import ChatInput from "../../components/chat/ChatInput";
 import { CHAT_MAX_WIDTH } from "../../components/chat/config";
 
@@ -17,8 +18,14 @@ export default function New() {
   const navigate = useNavigate();
   const [isStarting, setIsStarting] = useState(false);
   const [error, setError] = useState(null); // { kind, text }
+  const [typing, setTyping] = useState(false);
+  const isTouch = useMediaQuery("(pointer: coarse)");
 
   const firstName = data?.user.name?.split(" ")[0];
+
+  // On a phone, while the keyboard is up, the block sits right above it.
+  // Otherwise it floats in the middle of the screen.
+  const dockToKeyboard = typing && isTouch;
 
   async function start(text) {
     if (isStarting) return;
@@ -36,10 +43,11 @@ export default function New() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4">
-      {/* m-auto centres this block in whatever room is left. When the keyboard takes
-          space, the text and the box keep their size and only the empty space above
-          and below gets smaller. */}
-      <div className={`m-auto flex w-full ${CHAT_MAX_WIDTH} flex-col items-center py-2`}>
+      <div
+        className={`${
+          dockToKeyboard ? "mt-auto" : "m-auto"
+        } flex w-full ${CHAT_MAX_WIDTH} flex-col items-center py-2`}
+      >
         <h1 className="mb-8 text-center text-3xl font-bold leading-tight">
           Hi {firstName}, what are we studying?
         </h1>
@@ -56,7 +64,12 @@ export default function New() {
               </button>
             </div>
           )}
-          <ChatInput onSend={start} disabled={isStarting} autoFocus />
+          <ChatInput
+            onSend={start}
+            disabled={isStarting}
+            autoFocus
+            onFocusChange={setTyping}
+          />
         </div>
       </div>
     </div>

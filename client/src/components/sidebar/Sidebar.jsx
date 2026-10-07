@@ -55,7 +55,26 @@ export default function Sidebar({
 
       {/* scrolling middle */}
       <nav className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
-        <p className="px-3 pb-1 pt-2 text-xs text-zinc-500">Chats</p>
+                <Link
+          to="/chats"
+          onClick={onNavigate}
+          title="All chats"
+          className="group flex items-center gap-1 px-3 pb-1 pt-2 text-xs text-zinc-500 transition-colors hover:text-zinc-100"
+        >
+          Chats
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
+          >
+            <path d="M9 6l6 6-6 6" />
+          </svg>
+        </Link>
 
         {status === "loading" &&
           Array.from({ length: 6 }, (_, i) => (
