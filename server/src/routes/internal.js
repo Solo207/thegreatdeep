@@ -44,24 +44,31 @@ router.post("/messages", (req, res) => {
 
   const isDone = done === true;
 
-  // a callback that only says "finished", with no message
-  if (!message && isDone) {
-    clearPending(userId, chatId); // (2) the wait is over
-    const delivered = publish(userId, "reply", { chatId, message: null, done: true });
-    return res.json({ ok: true, delivered });
-  }
+  // Callbacks from n8n are always assistant messages, so don't trust the role field
+  const normalized = message ? normalizeMessage({ ...message, role: "assistant" }) : null;
 
-  // n8n delivers a message of any type (text, buttons, list, links)
-  const normalized = message?.role === "assistant" ? normalizeMessage(message) : null;
-  if (!normalized) return res.status(400).json({ error: "Bad message" });
-
+  // "done" always unlocks the page, even if the message that came with it is unusable
   if (isDone) clearPending(userId, chatId);
+
+  if (!normalized) {
+    if (isDone) {
+      const delivered = publish(userId, "reply", { chatId, message: null, done: true });
+      console.log(`[callback] chat=${chatId} message=${message ? "UNUSABLE" : "none"} done=true delivered=${delivered}`);
+      // 400 makes the problem visible in n8n, but the page has been unlocked anyway
+      return message
+        ? res.status(400).json({ error: "Bad message (page was unlocked anyway)", delivered })
+        : res.json({ ok: true, delivered });
+    }
+    console.log(`[callback] chat=${chatId} message=UNUSABLE done=false`);
+    return res.status(400).json({ error: "Bad message" });
+  }
 
   const delivered = publish(userId, "reply", {
     chatId,
     message: normalized,
     done: isDone,
   });
+  console.log(`[callback] chat=${chatId} type=${normalized.type} done=${isDone} delivered=${delivered}`);
   res.json({ ok: true, delivered });
 });
 

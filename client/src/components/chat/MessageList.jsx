@@ -2,6 +2,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import BotMessage from "./messages/BotMessage";
 import WaitingIndicator from "./WaitingIndicator";
 import { bodyOf } from "./messages/utils";
+import MessageBoundary from "./messages/MessageBoundary";
 
 const NEAR_BOTTOM_PX = 80;  // closer than this counts as "at the bottom"
 const SHOW_BUTTON_PX = 300; // scrolled further up than this (about 3 messages) shows the arrow
@@ -63,16 +64,16 @@ export default function MessageList({ messages, isLoading, words = [], onSelect 
                 </div>
               ) : (
                 <div className="min-w-0 px-1 text-zinc-100">
-                  <BotMessage
-                    message={m}
-                    // buttons and lists only work while they are the newest message
-                    active={i === messages.length - 1 && !isLoading}
-                    // what the user sent right after this message (their choice)
-                    nextUserText={
-                      messages[i + 1]?.role === "user" ? bodyOf(messages[i + 1]) : null
-                    }
-                    onSelect={onSelect}
-                  />
+                  <MessageBoundary>
+                    <BotMessage
+                      message={m}
+                      active={i === messages.length - 1 && !isLoading}
+                      nextUserText={
+                        messages[i + 1]?.role === "user" ? bodyOf(messages[i + 1]) : null
+                      }
+                      onSelect={onSelect}
+                    />
+                  </MessageBoundary>
                 </div>
               )}
 
