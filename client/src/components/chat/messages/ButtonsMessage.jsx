@@ -35,7 +35,7 @@ export default function ButtonsMessage({ message, body, active, chosenText, onSe
                   strokeWidth="3"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="h-3.5 w-3.5"
+                  className="h-3.5 w-3.5" 
                 >
                   <path d="M5 12l5 5L20 7" />
                 </svg>
