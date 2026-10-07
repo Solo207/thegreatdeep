@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import useMediaQuery from "../../hooks/useMediaQuery";
+import { FOCUS_EVENT } from "../../lib/keyboard";
+
+const MAX_LENGTH = 4000;
 
 export default function ChatInput({ onSend, disabled = false, autoFocus = false }) {
   const [value, setValue] = useState("");
@@ -7,26 +10,53 @@ export default function ChatInput({ onSend, disabled = false, autoFocus = false 
   // phones and tablets: Enter makes a new line, the arrow button sends
   const isTouch = useMediaQuery("(pointer: coarse)");
 
-    // when the box is unlocked again, put the cursor back in it
-  const wasDisabled = useRef(disabled);
-    useEffect(() => {
-    if (wasDisabled.current && !disabled && !isTouch) ref.current?.focus();
-    wasDisabled.current = disabled;
-  }, [disabled, isTouch]);
-
-  const resize = () => {
+  // keep the box tall enough for what is typed
+  useEffect(() => {
     const el = ref.current;
     if (!el) return;
     el.style.height = "auto";
     el.style.height = Math.min(el.scrollHeight, 200) + "px";
-  };
+  }, [value]);
+
+  // when the box is unlocked again, put the cursor back in it (computers only)
+  const wasDisabled = useRef(disabled);
+  useEffect(() => {
+    if (wasDisabled.current && !disabled && !isTouch) ref.current?.focus();
+    wasDisabled.current = disabled;
+  }, [disabled, isTouch]);
+
+  // the app can ask this box to take focus (only the /new box listens)
+  useEffect(() => {
+    if (!autoFocus) return;
+    const focus = () => ref.current?.focus();
+    window.addEventListener(FOCUS_EVENT, focus);
+    return () => window.removeEventListener(FOCUS_EVENT, focus);
+  }, [autoFocus]);
+
+  // type anywhere: pressing a letter or number while nothing else is being typed
+  // into sends it to this box
+  useEffect(() => {
+    if (disabled) return;
+    const onKeyDown = (e) => {
+      if (e.defaultPrevented || e.isComposing) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (!/^[\p{L}\p{N}]$/u.test(e.key)) return;
+      const active = document.activeElement;
+      if (active?.matches?.("input, textarea, select, [contenteditable]")) return;
+      if (document.querySelector('[role="dialog"]')) return; // a pop-up is open
+      e.preventDefault();
+      ref.current?.focus();
+      setValue((v) => (v + e.key).slice(0, MAX_LENGTH));
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [disabled]);
 
   const submit = () => {
     const text = value.trim();
     if (!text || disabled) return;
     onSend(text);
     setValue("");
-    requestAnimationFrame(resize);
   };
 
   const handleKeyDown = (e) => {
@@ -50,17 +80,14 @@ export default function ChatInput({ onSend, disabled = false, autoFocus = false 
         ref={ref}
         rows={1}
         value={value}
-        maxLength={4000}
+        maxLength={MAX_LENGTH}
         enterKeyHint="enter"
-        autoFocus={autoFocus}        
-        onChange={(e) => {
-          setValue(e.target.value);
-          resize();          
-        }}
-        onKeyDown={handleKeyDown}
+        autoFocus={autoFocus}
         disabled={disabled}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={handleKeyDown}
         placeholder={disabled ? "Waiting for the reply..." : "Ask anything..."}
-        className="max-h-[200px] w-full resize-none bg-transparent px-1 text-zinc-100 placeholder-zinc-500 outline-none"
+        className="max-h-[200px] w-full resize-none bg-transparent px-1 text-zinc-100 placeholder-zinc-500 outline-none disabled:cursor-not-allowed disabled:placeholder-zinc-600"
       />
       <div className="mt-2 flex justify-end">
         <button

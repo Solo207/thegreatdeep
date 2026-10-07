@@ -8,7 +8,7 @@ export default function ButtonsMessage({ message, body, active, chosenText, onSe
   return (
     <div>
       {body}
-      <div className="mt-2 flex flex-wrap gap-2">
+        <div className="mt-2 flex flex-col items-start gap-2">
         {buttons.map((b, i) => {
           const chosen = i === chosenIndex;
           const style = chosen

@@ -5,6 +5,7 @@ import ChatListItem from "./ChatListItem";
 import { useHistory } from "./history-context";
 import ResizeHandle from "./ResizeHandle";
 import { SIDEBAR_DEFAULT_WIDTH } from "./config";
+import { requestChatFocus, warmUpKeyboard } from "../../lib/keyboard";
 
 export default function Sidebar({
   width = SIDEBAR_DEFAULT_WIDTH,
@@ -29,7 +30,11 @@ export default function Sidebar({
         </div>
         <Link
           to="/new"
-          onClick={onNavigate}
+          onClick={() => {
+            warmUpKeyboard();
+            requestChatFocus();
+            onNavigate?.();
+          }}
           className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-100 transition-colors hover:bg-zinc-800"
         >
           <svg

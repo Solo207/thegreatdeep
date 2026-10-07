@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import useAllChats from "./hooks/useAllChats";
+import { warmUpKeyboard } from "../../lib/keyboard";
 
 export default function Chats() {
   const { status, chats, retry } = useAllChats();
@@ -12,6 +13,7 @@ export default function Chats() {
           <Link
             to="/new"
             className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-400"
+            onClick={warmUpKeyboard}
           >
             New chat
           </Link>

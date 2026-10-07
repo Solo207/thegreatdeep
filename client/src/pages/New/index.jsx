@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { authClient } from "../../lib/auth-client";
 import { createChat } from "../../lib/api/chats";
 import ChatInput from "../../components/chat/ChatInput";
-import useVisualViewportHeight from "../../hooks/useVisualViewportHeight";
+import { CHAT_MAX_WIDTH } from "../../components/chat/config";
 
 const ERROR_TEXT = {
   signed_out: "Your session has expired. Use Sign out (top right), then sign in again.",
@@ -12,21 +12,13 @@ const ERROR_TEXT = {
   timeout: "This took too long. Please retry.",
 };
 
-const clamp = (min, value, max) => Math.min(max, Math.max(min, value));
-
 export default function New() {
   const { data } = authClient.useSession();
   const navigate = useNavigate();
   const [isStarting, setIsStarting] = useState(false);
   const [error, setError] = useState(null); // { kind, text }
-  const viewportHeight = useVisualViewportHeight();
 
   const firstName = data?.user.name?.split(" ")[0];
-
-  // The greeting and the space under it shrink with the visible height:
-  // full size on a tall screen, smaller when the phone keyboard takes half of it.
-  const titleSize = clamp(18, viewportHeight * 0.045, 30); // px
-  const titleGap = clamp(8, viewportHeight * 0.04, 32);    // px
 
   async function start(text) {
     if (isStarting) return;
@@ -44,13 +36,11 @@ export default function New() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4">
-      {/* m-auto centres this block, and lets it scroll instead of being cut off
-          if the screen is ever shorter than its content */}
-      <div className="m-auto flex w-full max-w-2xl flex-col items-center py-2">
-        <h1
-          style={{ fontSize: titleSize, marginBottom: titleGap }}
-          className="text-center font-semibold leading-tight"
-        >
+      {/* m-auto centres this block in whatever room is left. When the keyboard takes
+          space, the text and the box keep their size and only the empty space above
+          and below gets smaller. */}
+      <div className={`m-auto flex w-full ${CHAT_MAX_WIDTH} flex-col items-center py-2`}>
+        <h1 className="mb-8 text-center text-3xl font-bold leading-tight">
           Hi {firstName}, what are we studying?
         </h1>
 

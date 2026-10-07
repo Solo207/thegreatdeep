@@ -5,6 +5,7 @@ import MessageList from "../../components/chat/MessageList";
 import { useHistory } from "../../components/sidebar/history-context";
 import NotFound from "../NotFound";
 import useChat from "./hooks/useChat";
+import { CHAT_MAX_WIDTH } from "../../components/chat/config";
 
 const ERROR_TEXT = {
   signed_out: "Your session has expired. Use Sign out (top right), then sign in again.",
@@ -72,7 +73,7 @@ function ChatScreen({ chatId }) {
       <MessageList messages={messages} isLoading={isWaiting} words={words} onSelect={send} />
 
       <div className="px-4 pb-4">
-        <div className="mx-auto w-full max-w-2xl">
+          <div className={`mx-auto w-full ${CHAT_MAX_WIDTH}`}>
           {sendError && (
             <div className="mb-2 flex items-center justify-between gap-3 rounded-lg border border-red-900 bg-red-950/40 px-3 py-2 text-sm text-red-200">
               <span>{ERROR_TEXT[sendError] ?? "Couldn't get a reply."}</span>
