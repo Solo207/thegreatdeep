@@ -23,9 +23,10 @@ export default function New() {
 
   const firstName = data?.user.name?.split(" ")[0];
 
-  // On a phone, while the keyboard is up, the block sits right above it.
-  // Otherwise it floats in the middle of the screen.
-  const dockToKeyboard = typing && isTouch;
+  // On a phone with the keyboard up: the box goes right above the keyboard and the
+  // greeting is centred in the space left above it. Otherwise (computer, or keyboard
+  // closed) the greeting and the box float together in the middle of the screen.
+  const dock = typing && isTouch;
 
   async function start(text) {
     if (isStarting) return;
@@ -44,13 +45,20 @@ export default function New() {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4">
       <div
-        className={`${
-          dockToKeyboard ? "mt-auto" : "m-auto"
-        } flex w-full ${CHAT_MAX_WIDTH} flex-col items-center py-2`}
+        className={`mx-auto flex w-full ${CHAT_MAX_WIDTH} flex-col items-center py-2 ${
+          dock ? "flex-1" : "my-auto"
+        }`}
       >
-        <h1 className="mb-8 text-center text-3xl font-bold leading-tight">
-          Hi {firstName}, what are we studying?
-        </h1>
+        {/* in dock mode this area stretches, and the greeting sits in its middle */}
+        <div className={dock ? "flex flex-1 items-center justify-center" : ""}>
+          <h1
+            className={`text-center text-3xl font-bold leading-tight ${
+              dock ? "" : "mb-8"
+            }`}
+          >
+            Hi {firstName}, what are we studying?
+          </h1>
+        </div>
 
         <div className="w-full">
           {error && (
