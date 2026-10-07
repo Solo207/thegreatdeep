@@ -92,7 +92,8 @@ export default function ChatInput({ onSend, disabled = false, autoFocus = false,
         className="max-h-[200px] w-full resize-none bg-transparent px-1 text-zinc-100 placeholder-zinc-500 outline-none disabled:cursor-not-allowed disabled:placeholder-zinc-600"
       />
       <div className="mt-2 flex justify-end">
-        <button
+          <button
+          onMouseDown={(e) => e.preventDefault()}
           onClick={submit}
           disabled={disabled || !value.trim()}
           aria-label="Send message"
