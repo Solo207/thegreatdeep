@@ -23,7 +23,10 @@ function secretOk(req) {
 // "done": true when it has finished. It never touches the database,
 // it only pushes to the screens that user has open.
 router.post("/messages", (req, res) => {
-  if (!secretOk(req)) return res.status(401).json({ error: "Unauthorized" });
+  if (!secretOk(req)) {
+    console.log("[callback] rejected: wrong or missing X-Callback-Secret");
+    return res.status(401).json({ error: "Unauthorized" });
+  }
 
   const { userId, chatId, message, error, done } = req.body ?? {};
   if (
@@ -32,29 +35,33 @@ router.post("/messages", (req, res) => {
     userId.length > 200 ||
     !UUID_RE.test(chatId)
   ) {
+    console.log("[callback] rejected: bad userId or chatId");
     return res.status(400).json({ error: "Bad request" });
   }
 
   // n8n reports a failure
   if (error) {
-    clearPending(userId, chatId); // (1) the wait is over
+    clearPending(userId, chatId);
     const delivered = publish(userId, "reply_failed", { chatId });
+    console.log(`[callback] chat=${chatId} error=true delivered=${delivered}`);
     return res.json({ ok: true, delivered });
   }
 
-  const isDone = done === true;
+  // accept true and "true" (n8n sometimes turns booleans into text)
+  const isDone = done === true || done === "true";
 
-  // Callbacks from n8n are always assistant messages, so don't trust the role field
+  // callbacks from n8n are always assistant messages, so don't trust the role field
   const normalized = message ? normalizeMessage({ ...message, role: "assistant" }) : null;
 
-  // "done" always unlocks the page, even if the message that came with it is unusable
+  // "done" always unlocks the page, even if its message is unusable
   if (isDone) clearPending(userId, chatId);
 
   if (!normalized) {
     if (isDone) {
       const delivered = publish(userId, "reply", { chatId, message: null, done: true });
-      console.log(`[callback] chat=${chatId} message=${message ? "UNUSABLE" : "none"} done=true delivered=${delivered}`);
-      // 400 makes the problem visible in n8n, but the page has been unlocked anyway
+      console.log(
+        `[callback] chat=${chatId} message=${message ? "UNUSABLE" : "none"} done=true delivered=${delivered}`
+      );
       return message
         ? res.status(400).json({ error: "Bad message (page was unlocked anyway)", delivered })
         : res.json({ ok: true, delivered });
@@ -68,7 +75,9 @@ router.post("/messages", (req, res) => {
     message: normalized,
     done: isDone,
   });
-  console.log(`[callback] chat=${chatId} type=${normalized.type} done=${isDone} delivered=${delivered}`);
+  console.log(
+    `[callback] chat=${chatId} type=${normalized.type} done=${isDone} delivered=${delivered}`
+  );
   res.json({ ok: true, delivered });
 });
 

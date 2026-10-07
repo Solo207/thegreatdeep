@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import ChatInput from "../../components/chat/ChatInput";
 import MessageList from "../../components/chat/MessageList";
+import { useHistory } from "../../components/sidebar/history-context";
 import NotFound from "../NotFound";
 import useChat from "./hooks/useChat";
-import { useHistory } from "../../components/sidebar/history-context";
 
 const ERROR_TEXT = {
   signed_out: "Your session has expired. Use Sign out (top right), then sign in again.",
@@ -29,7 +29,7 @@ function ChatScreen({ chatId }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-    const {
+  const {
     status,
     errorKind,
     messages,
@@ -70,6 +70,7 @@ function ChatScreen({ chatId }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <MessageList messages={messages} isLoading={isWaiting} words={words} onSelect={send} />
+
       <div className="px-4 pb-4">
         <div className="mx-auto w-full max-w-2xl">
           {sendError && (
