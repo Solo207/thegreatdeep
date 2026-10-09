@@ -1,12 +1,15 @@
 const clip = (s, n) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 
+// the longest answer a person can type into an "input" option
+export const QA_INPUT_MAX_LENGTH = 200;
+
 const typedText = (answer, optionId) => (answer?.texts?.[optionId] ?? "").trim();
 
 // is this question answered well enough to move on?
 export function isAnswered(question, answer) {
   const opt = question.options.find((o) => o.id === answer?.optionId);
   if (!opt) return false;
-  if (opt.kind === "input") return !opt.input.required || typedText(answer, opt.id).length > 0;
+  if (opt.kind === "input") return typedText(answer, opt.id).length > 0; // a typed answer can't be empty
   return true;
 }
 
@@ -14,8 +17,7 @@ export function isAnswered(question, answer) {
 function answerLabel(question, answer) {
   const opt = question.options.find((o) => o.id === answer?.optionId);
   if (!opt) return "";
-  if (opt.kind === "input") return typedText(answer, opt.id) || opt.label;
-  return opt.label;
+  return opt.kind === "input" ? typedText(answer, opt.id) : opt.label;
 }
 
 // what the user's chat bubble says

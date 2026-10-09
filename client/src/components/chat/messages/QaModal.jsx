@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import useVisualViewportHeight from "../../../hooks/useVisualViewportHeight";
 import Radio from "./Radio";
-import { isAnswered } from "./qa-utils";
+import { isAnswered, QA_INPUT_MAX_LENGTH } from "./qa-utils";
 
 // The questions pop-up: one question at a time.
 export default function QaModal({
@@ -101,38 +101,34 @@ export default function QaModal({
                 ? "border-indigo-500 bg-indigo-500/15"
                 : "border-zinc-700 hover:bg-zinc-800";
 
-              // a typed answer: the label is the placeholder
+              // a typed answer: the label is the placeholder inside the box
               if (o.kind === "input") {
                 return (
-                  <div key={o.id}>
-                    <label
-                      className={`flex cursor-text items-center gap-3 rounded-xl border px-4 py-3 transition-colors ${frame}`}
-                    >
-                      <Radio selected={selected} />
-                      <input
-                        type={o.input.inputType}
-                        value={answer?.texts?.[o.id] ?? ""}
-                        maxLength={o.input.maxLength}
-                        placeholder={o.label}
-                        onFocus={() => {
-                          if (!selected) onAnswer(q.id, { optionId: o.id });
-                        }}
-                        onChange={(e) =>
-                          onAnswer(q.id, {
-                            optionId: o.id,
-                            texts: { ...answer?.texts, [o.id]: e.target.value },
-                          })
-                        }
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") advance();
-                        }}
-                        className="min-w-0 flex-1 bg-transparent text-zinc-100 placeholder-zinc-500 outline-none"
-                      />
-                    </label>
-                    {o.input.placeholder && (
-                      <p className="mt-1 pl-12 text-xs text-zinc-500">{o.input.placeholder}</p>
-                    )}
-                  </div>
+                  <label
+                    key={o.id}
+                    className={`flex cursor-text items-center gap-3 rounded-xl border px-4 py-3 transition-colors ${frame}`}
+                  >
+                    <Radio selected={selected} />
+                    <input
+                      type="text"
+                      value={answer?.texts?.[o.id] ?? ""}
+                      maxLength={QA_INPUT_MAX_LENGTH}
+                      placeholder={o.label}
+                      onFocus={() => {
+                        if (!selected) onAnswer(q.id, { optionId: o.id });
+                      }}
+                      onChange={(e) =>
+                        onAnswer(q.id, {
+                          optionId: o.id,
+                          texts: { ...answer?.texts, [o.id]: e.target.value },
+                        })
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") advance();
+                      }}
+                      className="min-w-0 flex-1 bg-transparent text-zinc-100 placeholder-zinc-500 outline-none"
+                    />
+                  </label>
                 );
               }
 
