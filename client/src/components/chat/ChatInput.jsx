@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import useMediaQuery from "../../hooks/useMediaQuery";
 import { FOCUS_EVENT } from "../../lib/keyboard";
+import useKeyboardOpen from "../../hooks/useKeyboardOpen";
 
 const MAX_LENGTH = 4000;
 
@@ -9,6 +10,7 @@ export default function ChatInput({ onSend, disabled = false, autoFocus = false,
   const ref = useRef(null);
   // phones and tablets: Enter makes a new line, the arrow button sends
   const isTouch = useMediaQuery("(pointer: coarse)");
+  const keyboardOpen = useKeyboardOpen();
 
   // keep the box tall enough for what is typed
   useEffect(() => {
@@ -33,26 +35,31 @@ export default function ChatInput({ onSend, disabled = false, autoFocus = false,
     return () => window.removeEventListener(FOCUS_EVENT, focus);
   }, [autoFocus]);
 
-    // A phone only opens the keyboard in answer to a tap. After a page reload there has been
-  // no tap yet, so the first tap on an empty part of the page opens it instead.
+    // On /new a phone should always be ready to type: tapping an empty part of the page
+  // brings up the keyboard, every time.
   useEffect(() => {
     if (!autoFocus || !isTouch) return;
-    if (navigator.userActivation?.hasBeenActive) return; // you already tapped: nothing to fix
 
-    const onFirstTap = (e) => {
-      window.removeEventListener("click", onFirstTap, true); // only the first tap counts
+    const onTap = (e) => {
+      // taps on buttons, links, fields and the sidebar do their own thing
       const onControl =
         e.target instanceof Element &&
-        e.target.closest("button, a, input, textarea, select, label, [role='dialog']");
-      if (onControl) return; // taps on buttons, links and fields do their own thing
+        e.target.closest("button, a, input, textarea, select, label, aside, [role='dialog']");
+      if (onControl) return;
+
       const el = ref.current;
-      if (!el) return;
-      el.blur(); // after a reload the box can show a cursor but no keyboard
+      if (!el || el.disabled) return;
+
+      if (document.activeElement === el) {
+        if (keyboardOpen) return; // the keyboard is already showing
+        el.blur(); // focused but the keyboard was hidden: reset so it opens again
+      }
       el.focus();
     };
-    window.addEventListener("click", onFirstTap, true);
-    return () => window.removeEventListener("click", onFirstTap, true);
-  }, [autoFocus, isTouch]);
+
+    window.addEventListener("click", onTap, true);
+    return () => window.removeEventListener("click", onTap, true);
+  }, [autoFocus, isTouch, keyboardOpen]);
 
   // type anywhere: pressing a letter or number while nothing else is being typed
   // into sends it to this box
