@@ -4,6 +4,7 @@ import MessageBoundary from "./messages/MessageBoundary";
 import WaitingIndicator from "./WaitingIndicator";
 import { bodyOf } from "./messages/utils";
 import { CHAT_MAX_WIDTH } from "./config";
+import { isQaHidden } from "./messages/qa-utils";
 
 const NEAR_BOTTOM_PX = 80;  // closer than this to the end counts as "at the end"
 const SHOW_BUTTON_PX = 300; // further than this from the end shows the arrow (about 3 messages)
@@ -118,6 +119,9 @@ export default function MessageList({ messages, isLoading, words = [], onSelect 
     }
   }
   const indicatorAfter = lastUserIndex === -1 ? messages.length - 1 : lastUserIndex;
+    // the text the user sent right after message i (if the next message is theirs)
+  const nextText = (i) =>
+    messages[i + 1]?.role === "user" ? bodyOf(messages[i + 1]) : null;
 
   return (
     <div className="relative min-h-0 flex-1">
@@ -142,16 +146,18 @@ export default function MessageList({ messages, isLoading, words = [], onSelect 
                   </div>
                 </div>
               ) : (
-                <div className="min-w-0 px-1 text-zinc-100">
+                <div
+                  className={`min-w-0 px-1 text-zinc-100 ${
+                    isQaHidden(m, nextText(i)) ? "hidden" : ""
+                  }`}
+                >
                   <MessageBoundary>
                     <BotMessage
                       message={m}
                       // buttons, lists and questions only work while they are the newest message
                       active={i === messages.length - 1 && !isLoading}
                       // what the user sent right after this message (their choice)
-                      nextUserText={
-                        messages[i + 1]?.role === "user" ? bodyOf(messages[i + 1]) : null
-                      }
+                      nextUserText={nextText(i)}
                       onSelect={onSelect}
                     />
                   </MessageBoundary>

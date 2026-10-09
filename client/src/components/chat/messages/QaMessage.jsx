@@ -1,17 +1,19 @@
 import { useState } from "react";
 import Markdown from "../Markdown";
 import QaModal from "./QaModal";
-import { summarize, toSelection } from "./qa-utils";
+import { matchAnswers, summarize, toSelection } from "./qa-utils";
 
-// The message in the chat for a set of questions. While it is the newest message
-// the pop-up opens by itself; closing it leaves an "Answer" button here.
-export default function QaMessage({ message, active, answered, onSelect }) {
+// Questions are asked in a pop-up. In the chat they only appear once answered:
+// each question with the answer that was picked or typed. Unanswered ones show nothing.
+export default function QaMessage({ message, active, nextUserText, onSelect }) {
   const { body, questions } = message.content;
   const [dismissed, setDismissed] = useState(false);
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState({});
 
-  const open = active && !dismissed;
+  // answered = the user's next message answers every question
+  const given = nextUserText !== null ? matchAnswers(questions, nextUserText) : null;
+  const open = active && !dismissed && !given;
 
   const setAnswer = (questionId, patch) =>
     setAnswers((prev) => ({ ...prev, [questionId]: { ...prev[questionId], ...patch } }));
@@ -21,27 +23,33 @@ export default function QaMessage({ message, active, answered, onSelect }) {
   };
 
   return (
-    <div className="max-w-md rounded-2xl border border-zinc-700 bg-zinc-900/60 p-4">
+    <div>
       {body && <Markdown>{body}</Markdown>}
 
-      <div className={`flex items-center justify-between gap-3 ${body ? "mt-3" : ""}`}>
-        <span className="text-sm text-zinc-300">
-          {questions.length === 1 ? "1 question" : `${questions.length} questions`}
-        </span>
-
-        {answered ? (
-          <span className="text-sm text-indigo-300">✓ Answered</span>
-        ) : active ? (
-          <button
-            onClick={() => setDismissed(false)}
-            className="cursor-pointer rounded-lg border border-indigo-400/60 px-3 py-1.5 text-sm text-indigo-200 transition-colors hover:bg-indigo-500/15"
-          >
-            Answer
-          </button>
-        ) : (
-          <span className="text-sm text-zinc-500">Closed</span>
-        )}
-      </div>
+      {given && (
+        <div className={`flex max-w-md flex-col gap-4 ${body ? "mt-3" : ""}`}>
+          {given.map(({ question, text }) => (
+            <div key={question.id}>
+              <p className="whitespace-pre-wrap text-sm text-zinc-400">{question.text}</p>
+              <p className="mt-1.5 inline-flex max-w-full items-center gap-2 rounded-xl border border-indigo-500 bg-indigo-500/15 px-3 py-1.5 text-sm text-indigo-100">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-3.5 w-3.5 shrink-0"
+                >
+                  <path d="M5 12l5 5L20 7" />
+                </svg>
+                <span className="break-words">{text}</span>
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {open && (
         <QaModal

@@ -23,7 +23,7 @@ export default function ListMessage({ message, active, chosenText, onSelect }) {
   };
 
   return (
-    <div className="max-w-md rounded-2xl border border-zinc-700 bg-zinc-900/60 p-4">
+      <div className="max-w-md">
       {body && <Markdown>{body}</Markdown>}
 
       <button

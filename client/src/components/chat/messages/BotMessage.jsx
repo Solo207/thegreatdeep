@@ -38,7 +38,7 @@ export default function BotMessage({ message, active, nextUserText, onSelect }) 
         <QaMessage
           message={message}
           active={active}
-          answered={nextUserText !== null}
+          nextUserText={nextUserText}
           onSelect={onSelect}
         />
       );
