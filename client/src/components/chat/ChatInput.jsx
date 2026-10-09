@@ -33,6 +33,27 @@ export default function ChatInput({ onSend, disabled = false, autoFocus = false,
     return () => window.removeEventListener(FOCUS_EVENT, focus);
   }, [autoFocus]);
 
+    // A phone only opens the keyboard in answer to a tap. After a page reload there has been
+  // no tap yet, so the first tap on an empty part of the page opens it instead.
+  useEffect(() => {
+    if (!autoFocus || !isTouch) return;
+    if (navigator.userActivation?.hasBeenActive) return; // you already tapped: nothing to fix
+
+    const onFirstTap = (e) => {
+      window.removeEventListener("click", onFirstTap, true); // only the first tap counts
+      const onControl =
+        e.target instanceof Element &&
+        e.target.closest("button, a, input, textarea, select, label, [role='dialog']");
+      if (onControl) return; // taps on buttons, links and fields do their own thing
+      const el = ref.current;
+      if (!el) return;
+      el.blur(); // after a reload the box can show a cursor but no keyboard
+      el.focus();
+    };
+    window.addEventListener("click", onFirstTap, true);
+    return () => window.removeEventListener("click", onFirstTap, true);
+  }, [autoFocus, isTouch]);
+
   // type anywhere: pressing a letter or number while nothing else is being typed
   // into sends it to this box
   useEffect(() => {
