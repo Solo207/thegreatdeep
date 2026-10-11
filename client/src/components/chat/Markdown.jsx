@@ -4,9 +4,9 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import "katex/contrib/mhchem"; // chemistry shorthand, e.g. \ce{H2O}
+import remarkBreaks from "remark-breaks";
 
-const remarkPlugins = [remarkGfm, remarkMath];
-// throwOnError: false means a broken formula is shown as text instead of crashing the reply
+const remarkPlugins = [remarkGfm, remarkMath, remarkBreaks];// throwOnError: false means a broken formula is shown as text instead of crashing the reply
 const rehypePlugins = [[rehypeKatex, { throwOnError: false, strict: false }]];
 
 // Many AI models write math as \( ... \) and \[ ... \].
