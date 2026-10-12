@@ -4,7 +4,6 @@ import MessageBoundary from "./messages/MessageBoundary";
 import WaitingIndicator from "./WaitingIndicator";
 import { bodyOf } from "./messages/utils";
 import { CHAT_MAX_WIDTH } from "./config";
-import { isQaHidden } from "./messages/qa-utils";
 
 const NEAR_BOTTOM_PX = 80;  // closer than this to the end counts as "at the end"
 const SHOW_BUTTON_PX = 300; // further than this from the end shows the arrow (about 3 messages)
@@ -146,11 +145,7 @@ export default function MessageList({ messages, isLoading, words = [], onSelect 
                   </div>
                 </div>
               ) : (
-                <div
-                  className={`min-w-0 px-1 text-zinc-100 ${
-                    isQaHidden(m, nextText(i)) ? "hidden" : ""
-                  }`}
-                >
+                  <div className="min-w-0 px-1 text-zinc-100">
                   <MessageBoundary>
                     <BotMessage
                       message={m}

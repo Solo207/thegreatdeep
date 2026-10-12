@@ -5,10 +5,12 @@ import Radio from "./Radio";
 import { isAnswered, QA_INPUT_MAX_LENGTH } from "./qa-utils";
 
 // The questions pop-up: one question at a time.
+// readOnly: the questions were ignored, so they can be read but not answered.
 export default function QaModal({
   questions,
   step,
   answers,
+  readOnly = false,
   onAnswer,
   onBack,
   onNext,
@@ -24,7 +26,7 @@ export default function QaModal({
   const valid = isAnswered(q, answer);
 
   const advance = () => {
-    if (!valid) return;
+    if (readOnly || !valid) return;
     if (isLast) onSubmit();
     else onNext();
   };
@@ -50,6 +52,9 @@ export default function QaModal({
       document.removeEventListener("focusin", onFocusIn);
     };
   }, [onClose]);
+
+  const primaryStyle =
+    "cursor-pointer rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-500";
 
   return createPortal(
     <div
@@ -91,13 +96,21 @@ export default function QaModal({
           </button>
         </div>
 
+        {readOnly && (
+          <p className="shrink-0 border-b border-zinc-800 bg-zinc-800/40 px-5 py-2 text-xs text-zinc-400">
+            You moved on without answering, so these can't be answered now.
+          </p>
+        )}
+
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
           <p className="mb-4 whitespace-pre-wrap font-medium leading-relaxed">{q.text}</p>
 
           <div className="flex flex-col gap-2">
             {q.options.map((o) => {
-              const selected = answer?.optionId === o.id;
-              const frame = selected
+              const selected = !readOnly && answer?.optionId === o.id;
+              const frame = readOnly
+                ? "border-zinc-800 opacity-70"
+                : selected
                 ? "border-indigo-500 bg-indigo-500/15"
                 : "border-zinc-700 hover:bg-zinc-800";
 
@@ -106,16 +119,19 @@ export default function QaModal({
                 return (
                   <label
                     key={o.id}
-                    className={`flex cursor-text items-center gap-3 rounded-xl border px-4 py-3 transition-colors ${frame}`}
+                    className={`flex items-center gap-3 rounded-xl border px-4 py-3 transition-colors ${
+                      readOnly ? "cursor-default" : "cursor-text"
+                    } ${frame}`}
                   >
                     <Radio selected={selected} />
                     <input
                       type="text"
-                      value={answer?.texts?.[o.id] ?? ""}
+                      disabled={readOnly}
+                      value={readOnly ? "" : answer?.texts?.[o.id] ?? ""}
                       maxLength={QA_INPUT_MAX_LENGTH}
                       placeholder={o.label}
                       onFocus={() => {
-                        if (!selected) onAnswer(q.id, { optionId: o.id });
+                        if (!readOnly && !selected) onAnswer(q.id, { optionId: o.id });
                       }}
                       onChange={(e) =>
                         onAnswer(q.id, {
@@ -126,7 +142,7 @@ export default function QaModal({
                       onKeyDown={(e) => {
                         if (e.key === "Enter") advance();
                       }}
-                      className="min-w-0 flex-1 bg-transparent text-zinc-100 placeholder-zinc-500 outline-none"
+                      className="min-w-0 flex-1 bg-transparent text-zinc-100 placeholder-zinc-500 outline-none disabled:cursor-default"
                     />
                   </label>
                 );
@@ -137,8 +153,11 @@ export default function QaModal({
                 <button
                   key={o.id}
                   type="button"
+                  disabled={readOnly}
                   onClick={() => onAnswer(q.id, { optionId: o.id })}
-                  className={`flex w-full cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${frame}`}
+                  className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${
+                    readOnly ? "cursor-default" : "cursor-pointer"
+                  } ${frame}`}
                 >
                   <Radio selected={selected} />
                   <span>{o.label}</span>
@@ -169,13 +188,16 @@ export default function QaModal({
                 Back
               </button>
             )}
-            <button
-              onClick={advance}
-              disabled={!valid}
-              className="cursor-pointer rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-500"
-            >
-              {isLast ? "Send" : "Next"}
-            </button>
+
+            {readOnly ? (
+              <button onClick={isLast ? onClose : onNext} className={primaryStyle}>
+                {isLast ? "Close" : "Next"}
+              </button>
+            ) : (
+              <button onClick={advance} disabled={!valid} className={primaryStyle}>
+                {isLast ? "Send" : "Next"}
+              </button>
+            )}
           </div>
         </div>
       </div>

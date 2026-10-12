@@ -87,10 +87,3 @@ export function matchAnswers(questions, userText) {
   }
   return result;
 }
-
-// a questions message that has nothing to show in the chat (unanswered, no text of its own)
-export function isQaHidden(message, nextUserText) {
-  if (message.type !== "qa") return false;
-  if (message.content.body) return false;
-  return !(nextUserText !== null && matchAnswers(message.content.questions, nextUserText));
-}
