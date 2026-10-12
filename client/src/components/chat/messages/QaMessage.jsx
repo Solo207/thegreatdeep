@@ -70,7 +70,7 @@ export default function QaMessage({ message, active, nextUserText, onSelect }) {
         <div className={`flex flex-col gap-4 ${body ? "mt-3" : ""}`}>
           {questions.map((q, i) => (
             <div key={q.id} className="max-w-md">
-              <p className="whitespace-pre-wrap leading-relaxed">
+            <p className="whitespace-pre-wrap text-sm text-zinc-400">
                 {questions.length > 1 ? `${i + 1}. ` : ""}
                 {q.text}
               </p>
