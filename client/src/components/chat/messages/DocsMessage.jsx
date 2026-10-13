@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { downloadDoc } from "../../../lib/api/chats";
+
+// How long the button stays paused after a tap, in milliseconds
+const PAUSE_MS = 10_000;
 
 // hands a file to the browser as a download
 function saveBlob(blob, filename) {
@@ -14,16 +17,28 @@ function saveBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-// A long horizontal download button for a document. It can be tapped any number of times.
+// A long horizontal download button for a document.
+// It can be tapped any number of times, but pauses for a few seconds after each tap.
 // Nothing is sent to the chat: the browser just starts a download.
 export default function DocsMessage({ message }) {
   const { chatId } = useParams();
   const { body, filetype, link } = message.content;
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(false);     // the file is being fetched
+  const [paused, setPaused] = useState(false); // the pause after a tap
   const [error, setError] = useState(null);
+  const pauseTimer = useRef(null);
+
+  // don't leave a timer running if the message goes away
+  useEffect(() => () => clearTimeout(pauseTimer.current), []);
 
   const tap = async () => {
-    if (busy) return;
+    if (busy || paused) return;
+
+    // pause the button from this moment
+    setPaused(true);
+    clearTimeout(pauseTimer.current);
+    pauseTimer.current = setTimeout(() => setPaused(false), PAUSE_MS);
+
     setBusy(true);
     setError(null);
     try {
@@ -37,21 +52,27 @@ export default function DocsMessage({ message }) {
       setError(
         err.kind === "not_found"
           ? "This document isn't available."
-          : "Couldn't download the document. Tap to try again."
+          : "Couldn't download the document. Try again in a moment."
       );
     } finally {
       setBusy(false);
     }
   };
 
+  const off = busy || paused;
+
   return (
     <div>
       <button
         onClick={tap}
-        disabled={busy}
+        disabled={off}
         aria-label={body || "Document"}
         className={`flex w-full max-w-md items-center gap-3 rounded-xl border border-indigo-400/60 px-4 py-3 text-left text-indigo-100 transition-colors ${
-          busy ? "cursor-wait opacity-70" : "cursor-pointer hover:bg-indigo-500/15"
+          busy
+            ? "cursor-wait opacity-70"
+            : paused
+            ? "cursor-not-allowed opacity-60"
+            : "cursor-pointer hover:bg-indigo-500/15"
         }`}
       >
         <svg
