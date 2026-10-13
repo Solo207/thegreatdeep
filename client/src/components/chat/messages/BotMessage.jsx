@@ -4,6 +4,7 @@ import ListMessage from "./ListMessage";
 import LinksMessage from "./LinksMessage";
 import QaMessage from "./QaMessage";
 import { bodyOf } from "./utils";
+import DocsMessage from "./DocsMessage";
 
 // Picks how a bot message looks, based on its "type"
 export default function BotMessage({ message, active, nextUserText, onSelect }) {
@@ -33,6 +34,8 @@ export default function BotMessage({ message, active, nextUserText, onSelect }) 
       );
     case "links":
       return <LinksMessage message={message} body={bodyBlock} />;
+    case "docs":
+      return <DocsMessage message={message} />;
     case "qa":
       return (
         <QaMessage

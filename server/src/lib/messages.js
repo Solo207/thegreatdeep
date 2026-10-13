@@ -1,6 +1,6 @@
 import crypto from "crypto";
 
-const TYPES = ["text", "buttons", "list", "links", "qa"];
+const TYPES = ["text", "buttons", "list", "links", "qa", "docs"];
 const MAX_BODY = 30_000;
 
 const cut = (v, max) => (typeof v === "string" ? v.slice(0, max) : "");
@@ -24,7 +24,7 @@ function parseContent(type, content) {
 }
 
 // only normal web links: blocks javascript: and similar tricks
-function safeUrl(value) {
+export function safeUrl(value) {
   try {
     const u = new URL(String(value));
     return u.protocol === "https:" || u.protocol === "http:" ? u.toString() : null;
@@ -103,6 +103,13 @@ export function normalizeMessage(raw) {
       })
       .filter((q) => q.text && q.options.length > 0);
     if (questions.length > 0) content = { body, questions };
+    else type = "text";
+  } else if (type === "docs") {
+    const label = cut(c.body, 200).trim();
+    // the file type is only letters and digits, shown as a small badge (pptx, pdf, docx…)
+    const filetype = cut(c.filetype, 10).toLowerCase().replace(/[^a-z0-9]/g, "");
+    const link = c.link ? safeUrl(cut(c.link, 2000)) ?? "" : "";
+    if (label || filetype) content = { body: label, filetype, link };
     else type = "text";
   }
 

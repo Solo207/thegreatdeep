@@ -1,13 +1,15 @@
 import { Router } from "express";
 import requireAuth from "../middleware/requireAuth.js";
-import { callN8n } from "../lib/n8n.js";
+import { callN8n, getN8nFile } from "../lib/n8n.js";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import {
   markPending,
   setPendingWords,
   clearPending,
   getPending,
 } from "../lib/pending.js";
-import { normalizeMessage } from "../lib/messages.js";
+import { normalizeMessage, safeUrl } from "../lib/messages.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -29,6 +31,20 @@ function cleanWords(data) {
     .filter((w) => typeof w === "string" && w.trim())
     .map((w) => w.trim().slice(0, 40))
     .slice(0, 10);
+}
+
+// A file name that is safe to put in a header: plain characters only
+function safeFileName(name, filetype) {
+  const ext =
+    typeof filetype === "string"
+      ? filetype.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 10)
+      : "";
+  let base =
+    typeof name === "string"
+      ? name.replace(/[^A-Za-z0-9 ._()-]/g, "").trim().slice(0, 100)
+      : "";
+  if (!base) base = "document";
+  return ext && !base.toLowerCase().endsWith(`.${ext}`) ? `${base}.${ext}` : base;
 }
 
 // what the user tapped or answered (the readable version is sent as the message text)
@@ -149,6 +165,66 @@ router.post("/:chatId/messages", async (req, res) => {
     res.status(202).json({ words });
   } catch (err) {
     clearPending(userId, chatId);
+    fail(res, err);
+  }
+});
+
+// 5. a document button was tapped: n8n's workflow produces the file and it is
+// streamed on to the browser, which downloads it. Nothing is sent to the chat.
+router.get("/:chatId/docs/:messageId", async (req, res) => {
+  const { chatId, messageId } = req.params;
+  if (!UUID_RE.test(chatId) || !UUID_RE.test(messageId)) {
+    return res.status(404).json({ error: "Not found" });
+  }
+
+  // the link the message carries: optional, but if present it must be a normal web link
+  const rawLink = typeof req.query.link === "string" ? req.query.link : "";
+  const link = rawLink ? (rawLink.length <= 2000 ? safeUrl(rawLink) : null) : "";
+  if (link === null) return res.status(400).json({ error: "Bad link" });
+
+  const fileName = safeFileName(req.query.name, req.query.filetype);
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 90_000); // waiting for n8n to start answering
+  res.on("close", () => controller.abort()); // the browser gave up, so stop asking n8n
+
+  try {
+    const upstream = await getN8nFile(
+      "docs",
+      {
+        // the user details come from the signed-in session, never from the browser
+        userId: req.user.id,
+        email: req.user.email,
+        name: req.user.name,
+        chatId,
+        messageId,
+        link,
+      },
+      controller.signal
+    );
+    clearTimeout(timer);
+
+    // always a download, never shown inside the page
+    const disposition = upstream.headers.get("content-disposition") || "";
+    res.set({
+      "Content-Type": upstream.headers.get("content-type") || "application/octet-stream",
+      "Content-Disposition": /^attachment/i.test(disposition)
+        ? disposition
+        : `attachment; filename="${fileName}"`,
+      "Cache-Control": "private, no-store",
+    });
+    const length = upstream.headers.get("content-length");
+    if (length && !upstream.headers.get("content-encoding")) res.set("Content-Length", length);
+
+    if (!upstream.body) return res.end();
+    await pipeline(Readable.fromWeb(upstream.body), res); // streams the file, never held in memory
+  } catch (err) {
+    clearTimeout(timer);
+    if (res.headersSent) {
+      res.destroy(); // already streaming: just stop
+      return;
+    }
+    if (err.name === "AbortError") return res.status(504).json({ error: "Timed out" });
     fail(res, err);
   }
 });

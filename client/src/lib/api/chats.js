@@ -54,3 +54,24 @@ export function sendMessage(chatId, content, selection = null) {
 export function getHistory(all = false) {
   return request(all ? "?all=true" : "");
 }
+
+// Download a document. n8n's workflow produces the file, and the server passes it on.
+// Returns { blob, filename } (the server decides the file name).
+export async function downloadDoc(chatId, messageId, { link, name, filetype }) {
+  const params = new URLSearchParams();
+  if (link) params.set("link", link);
+  if (name) params.set("name", name);
+  if (filetype) params.set("filetype", filetype);
+
+  let res;
+  try {
+    res = await fetch(`/api/chats/${chatId}/docs/${messageId}?${params}`);
+  } catch {
+    throw new ApiError(0, "network"); // offline, server down, etc.
+  }
+  if (!res.ok) throw new ApiError(res.status, kindFor(res.status));
+
+  const disposition = res.headers.get("content-disposition") ?? "";
+  const match = /filename="([^"]+)"/.exec(disposition);
+  return { blob: await res.blob(), filename: match ? match[1] : "document" };
+}
