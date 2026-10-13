@@ -1,13 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
+import { splitLinks } from "../../lib/links";
 import useMediaQuery from "../../hooks/useMediaQuery";
 import { FOCUS_EVENT } from "../../lib/keyboard";
 import useKeyboardOpen from "../../hooks/useKeyboardOpen";
 
 const MAX_LENGTH = 4000;
+// marks web addresses in the box with a light highlight while you type (false turns it off)
+const HIGHLIGHT_LINKS = true;
 
 export default function ChatInput({ onSend, disabled = false, autoFocus = false, onFocusChange }) {
   const [value, setValue] = useState("");
   const ref = useRef(null);
+  const mirrorRef = useRef(null);
+
   // phones and tablets: Enter makes a new line, the arrow button sends
   const isTouch = useMediaQuery("(pointer: coarse)");
   const keyboardOpen = useKeyboardOpen();
@@ -104,21 +109,48 @@ export default function ChatInput({ onSend, disabled = false, autoFocus = false,
       }}
       className="w-full cursor-text rounded-2xl border border-zinc-700 bg-zinc-800 p-3 shadow-lg transition-colors focus-within:border-zinc-500"
     >
-      <textarea
-        ref={ref}
-        rows={1}
-        value={value}
-        maxLength={MAX_LENGTH}
-        enterKeyHint="enter"
-        autoFocus={autoFocus}
-        onFocus={() => onFocusChange?.(true)}
-        onBlur={() => onFocusChange?.(false)}
-        disabled={disabled}
-        onChange={(e) => setValue(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder={disabled ? "Waiting for the reply..." : "Ask anything..."}
-        className="max-h-[200px] w-full resize-none bg-transparent px-1 text-zinc-100 placeholder-zinc-500 outline-none disabled:cursor-not-allowed disabled:placeholder-zinc-600"
-      />
+           <div className="relative">
+        {HIGHLIGHT_LINKS && (
+          <div
+            ref={mirrorRef}
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 overflow-y-hidden whitespace-pre-wrap break-words px-1 text-transparent"
+          >
+            {splitLinks(value).map((part, i) =>
+              part.href ? (
+                <span
+                  key={i}
+                  className="rounded-sm bg-indigo-400/20 underline decoration-indigo-300 underline-offset-2"
+                >
+                  {part.text}
+                </span>
+              ) : (
+                <Fragment key={i}>{part.text}</Fragment>
+              )
+            )}
+            {"\u200b"}
+          </div>
+        )}
+        <textarea
+          ref={ref}
+          rows={1}
+          value={value}
+          maxLength={MAX_LENGTH}
+          enterKeyHint="enter"
+          autoFocus={autoFocus}
+          disabled={disabled}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onFocus={() => onFocusChange?.(true)}
+          onBlur={() => onFocusChange?.(false)}
+          onScroll={(e) => {
+            if (mirrorRef.current) mirrorRef.current.scrollTop = e.currentTarget.scrollTop;
+          }}
+          placeholder={disabled ? "Waiting for the reply..." : "Ask anything..."}
+          className="relative max-h-[200px] w-full resize-none bg-transparent px-1 text-zinc-100 placeholder-zinc-500 outline-none disabled:cursor-not-allowed disabled:placeholder-zinc-600"
+        />
+      </div>
+      
       <div className="mt-2 flex justify-end">
           <button
           onMouseDown={(e) => e.preventDefault()}
