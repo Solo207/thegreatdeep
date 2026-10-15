@@ -125,7 +125,7 @@ export default function PapersPanel({ subject, closing, onBack }) {
                   {group.name}
                 </span>
                 <span className="text-xs text-zinc-500">
-                  {group.items.length} {group.items.length === 1 ? "set" : "sets"}
+                  {group.items.length} {group.items.length === 1 ? "past question" : "past questions"}
                 </span>
               </h2>
 
