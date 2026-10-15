@@ -9,6 +9,7 @@ import chatsRouter from "./src/routes/chats.js";
 import eventsRouter from "./src/routes/events.js";
 import internalRouter from "./src/routes/internal.js";
 import pqRouter from "./src/routes/pq.js";
+import bmRouter from "./src/routes/bm.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -47,6 +48,12 @@ app.use(
   "/api/pq",
   rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: true, legacyHeaders: false }),
   pqRouter
+);
+
+app.use(
+  "/api/bm",
+  rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: true, legacyHeaders: false }),
+  bmRouter
 );
 
 app.use(express.static(distPath));

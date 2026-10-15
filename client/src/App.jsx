@@ -9,6 +9,7 @@ import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
 import Chats from "./pages/Chats";
 import PastQuestions from "./pages/PastQuestions";
+import Bookmarks from "./pages/Bookmarks";
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
             <Route path="/chat/:chatId" element={<Chat />} />
             <Route path="/chats" element={<Chats />} />
             <Route path="/past_questions" element={<PastQuestions />} />
+            <Route path="/bookmarks" element={<Bookmarks />} />
           </Route>
         </Route>
         <Route path="*" element={<NotFound />} />

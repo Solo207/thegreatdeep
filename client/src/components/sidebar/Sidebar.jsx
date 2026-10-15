@@ -72,6 +72,25 @@ export default function Sidebar({
           </svg>
           Past questions
         </Link>
+        <Link
+          to="/bookmarks"
+          onClick={onNavigate}
+          className="mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-100 transition-colors hover:bg-zinc-800"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-4 w-4"
+          >
+            <path d="M6 4h12v17l-6-4-6 4z" />
+          </svg>
+          Bookmarks
+        </Link>
       </div>
 
       {/* scrolling middle */}

@@ -112,3 +112,4 @@ router.post("/add", async (req, res) => {
 });
 
 export default router;
+export { cut, fail, linkFrom, groupsFrom };
