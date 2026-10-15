@@ -13,8 +13,21 @@ const typedText = (answer, optionId) => (answer?.texts?.[optionId] ?? "").trim()
 export function isAnswered(question, answer) {
   const opt = question.options.find((o) => o.id === answer?.optionId);
   if (!opt) return false;
-  if (opt.kind === "input") return typedText(answer, opt.id).length > 0; // a typed answer can't be empty
+  if (opt.kind === "input") {
+    const text = typedText(answer, opt.id);
+    if (opt.numeric) {
+      const n = Number(text);
+      return Number.isInteger(n) && n >= opt.numeric.min && n <= opt.numeric.max;
+    }
+    return text.length > 0; // a typed answer can't be empty
+  }
   return true;
+}
+
+// keeps only digits, no leading zeros, and never more than the maximum
+export function onlyNumber(raw, { max }) {
+  const digits = raw.replace(/\D/g, "").replace(/^0+/, "").slice(0, String(max).length);
+  return digits && Number(digits) > max ? String(max) : digits;
 }
 
 // the answer as a short piece of text

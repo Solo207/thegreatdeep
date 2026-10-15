@@ -8,6 +8,7 @@ import rateLimit from "express-rate-limit";
 import chatsRouter from "./src/routes/chats.js"; 
 import eventsRouter from "./src/routes/events.js";
 import internalRouter from "./src/routes/internal.js";
+import pqRouter from "./src/routes/pq.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -40,6 +41,12 @@ app.use(
   "/api/chats",
   rateLimit({ windowMs: 60_000, limit: 60, standardHeaders: true, legacyHeaders: false }),
   chatsRouter
+);
+
+app.use(
+  "/api/pq",
+  rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: true, legacyHeaders: false }),
+  pqRouter
 );
 
 app.use(express.static(distPath));

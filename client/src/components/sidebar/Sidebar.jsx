@@ -7,6 +7,7 @@ import ResizeHandle from "./ResizeHandle";
 import { SIDEBAR_DEFAULT_WIDTH } from "./config";
 import { requestChatFocus, warmUpKeyboard } from "../../lib/keyboard";
 
+
 export default function Sidebar({
   width = SIDEBAR_DEFAULT_WIDTH,
   maxWidth = "85vw",
@@ -50,6 +51,26 @@ export default function Sidebar({
             <path d="M12 5v14M5 12h14" />
           </svg>
           New chat
+        </Link>
+        <Link
+          to="/past_questions"
+          onClick={onNavigate}
+          className="mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-100 transition-colors hover:bg-zinc-800"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-4 w-4"
+          >
+            <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+            <path d="M14 3v5h5M9 13h6M9 17h6" />
+          </svg>
+          Past questions
         </Link>
       </div>
 

@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import useVisualViewportHeight from "../../../hooks/useVisualViewportHeight";
 import Radio from "./Radio";
-import { isAnswered, QA_INPUT_MAX_LENGTH } from "./qa-utils";
+import { isAnswered, onlyNumber, QA_INPUT_MAX_LENGTH } from "./qa-utils";
 
 // The questions pop-up: one question at a time.
 // readOnly: the questions were ignored, so they can be read but not answered.
@@ -11,6 +11,7 @@ export default function QaModal({
   step,
   answers,
   readOnly = false,
+  submitLabel = "Send",
   onAnswer,
   onBack,
   onNext,
@@ -128,7 +129,8 @@ export default function QaModal({
                       type="text"
                       disabled={readOnly}
                       value={readOnly ? "" : answer?.texts?.[o.id] ?? ""}
-                      maxLength={QA_INPUT_MAX_LENGTH}
+                      inputMode={o.numeric ? "numeric" : undefined}
+                      maxLength={o.numeric ? String(o.numeric.max).length : QA_INPUT_MAX_LENGTH}
                       placeholder={o.label}
                       onFocus={() => {
                         if (!readOnly && !selected) onAnswer(q.id, { optionId: o.id });
@@ -136,7 +138,7 @@ export default function QaModal({
                       onChange={(e) =>
                         onAnswer(q.id, {
                           optionId: o.id,
-                          texts: { ...answer?.texts, [o.id]: e.target.value },
+                          texts: { ...answer?.texts, [o.id]: o.numeric ? onlyNumber(e.target.value, o.numeric) : e.target.value },
                         })
                       }
                       onKeyDown={(e) => {
@@ -195,7 +197,7 @@ export default function QaModal({
               </button>
             ) : (
               <button onClick={advance} disabled={!valid} className={primaryStyle}>
-                {isLast ? "Send" : "Next"}
+                {isLast ? submitLabel : "Next"}
               </button>
             )}
           </div>
