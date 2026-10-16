@@ -5,8 +5,9 @@ import HistoryProvider from "./sidebar/HistoryProvider";
 import EventsProvider from "./events/EventsProvider";
 import useSidebarState from "./sidebar/useSidebarState";
 import useVisualViewportHeight from "../hooks/useVisualViewportHeight";
-import { SIDEBAR_SLIDE_MS } from "./sidebar/config";
+import { SIDEBAR_SLIDE_MS, SIDEBAR_SWIPE_OPEN } from "./sidebar/config";
 import { requestChatFocus } from "../lib/keyboard";
+import useSwipe from "./sidebar/useSwipe";
 
 export default function AppShell() {
   const {
@@ -33,6 +34,18 @@ export default function AppShell() {
   const afterNavigate = () => {
     if (!isDesktop) closeDrawer();
   };
+
+    // a swipe brings the sidebar in; the opposite swipe sends the drawer away
+  const openBySwipe = () => {
+    if (!isOpen) toggle();
+  };
+  const closeBySwipe = () => {
+    if (!isDesktop && isOpen) closeDrawerAndFocus();
+  };
+  useSwipe({
+    onSwipeRight: SIDEBAR_SWIPE_OPEN === "right" ? openBySwipe : closeBySwipe,
+    onSwipeLeft: SIDEBAR_SWIPE_OPEN === "left" ? openBySwipe : closeBySwipe,
+  });
 
   return (
     <EventsProvider>

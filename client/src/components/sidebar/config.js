@@ -8,3 +8,7 @@ export const SIDEBAR_SLIDE_MS = 350;
 export const SIDEBAR_DEFAULT_WIDTH = 288; // was 256
 export const SIDEBAR_MIN_WIDTH = 220;
 export const SIDEBAR_MAX_WIDTH = 480;
+// The swipe that opens the sidebar.
+// "right" = finger moves left to right (the usual way to pull out a left-hand sidebar).
+// "left"  = finger moves right to left. The opposite swipe closes the drawer.
+export const SIDEBAR_SWIPE_OPEN = "right";

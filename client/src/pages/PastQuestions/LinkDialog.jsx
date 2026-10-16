@@ -1,15 +1,22 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
-// how long before the page goes to the link by itself
-const REDIRECT_DELAY_MS = 2500;
+// How long after the link arrives the new tab opens by itself, in milliseconds.
+// Short on purpose: browsers allow a new tab only soon after your tap.
+const OPEN_DELAY_MS = 300;
 
-// Shows the link and sends the user to it shortly after it arrives.
-// Closing the box cancels the redirect.
+// Shows the link and opens it in a NEW tab as soon as it arrives.
+// If the browser blocks that, the link in the box opens it when tapped.
 export default function LinkDialog({ state, heading, message, link, onClose }) {
+  const [blocked, setBlocked] = useState(false);
+
   useEffect(() => {
     if (state !== "ready" || !link) return;
-    const timer = setTimeout(() => window.location.assign(link), REDIRECT_DELAY_MS);
+    const timer = setTimeout(() => {
+      const win = window.open(link, "_blank");
+      if (win) win.opener = null; // the new page can't reach back into this one
+      else setBlocked(true); // the browser stopped it: the link below still works
+    }, OPEN_DELAY_MS);
     return () => clearTimeout(timer);
   }, [state, link]);
 
@@ -45,11 +52,17 @@ export default function LinkDialog({ state, heading, message, link, onClose }) {
             <p className="text-zinc-300">{message}</p>
             <a
               href={link}
+              target="_blank"
+              rel="noopener noreferrer"
               className="mt-3 block break-all rounded-xl border border-indigo-400/60 px-4 py-3 text-indigo-200 underline decoration-indigo-300/50 underline-offset-2 transition-colors hover:bg-indigo-500/15"
             >
               {link}
             </a>
-            <p className="mt-3 text-sm text-zinc-500">Taking you there now…</p>
+            <p className="mt-3 text-sm text-zinc-500">
+              {blocked
+                ? "Your browser didn't open it by itself. Tap the link above."
+                : "Opening it in a new tab…"}
+            </p>
           </>
         )}
 
@@ -62,7 +75,7 @@ export default function LinkDialog({ state, heading, message, link, onClose }) {
             onClick={onClose}
             className="cursor-pointer rounded-lg border border-zinc-700 px-4 py-2 text-sm transition-colors hover:bg-zinc-800"
           >
-            {state === "ready" ? "Stay here" : "Close"}
+            Close
           </button>
         </div>
       </div>
