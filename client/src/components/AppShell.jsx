@@ -51,6 +51,7 @@ export default function AppShell() {
   return (
     <EventsProvider>
       <HistoryProvider>
+        <RoughbooksProvider>
         <div
           style={{ height: viewportHeight }}
           className="flex overflow-hidden bg-zinc-900 text-zinc-100"
@@ -132,6 +133,7 @@ export default function AppShell() {
             </main>
           </div>
         </div>
+        </RoughbooksProvider>
       </HistoryProvider>
     </EventsProvider>
   );
