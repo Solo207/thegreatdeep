@@ -9,6 +9,7 @@ import { SIDEBAR_SLIDE_MS, SIDEBAR_SWIPE_OPEN } from "./sidebar/config";
 import { requestChatFocus } from "../lib/keyboard";
 import useSwipe from "./sidebar/useSwipe";
 import RoughbooksProvider from "./roughbooks/RoughbooksProvider";
+import PageBoundary from "./PageBoundary";
 
 export default function AppShell() {
   const {
@@ -17,7 +18,8 @@ export default function AppShell() {
     width, setWidth,
   } = useSidebarState();
   const viewportHeight = useVisualViewportHeight();
-  const onNewChat = useLocation().pathname === "/new";
+  const { pathname } = useLocation();
+  const onNewChat = pathname === "/new";
 
   // On a phone, closing the drawer while on /new brings up the keyboard.
   // (It happens inside the tap, which is when phones allow it.)
@@ -129,7 +131,9 @@ export default function AppShell() {
               </div>
             )}
             <main className="flex min-h-0 flex-1 flex-col">
-              <Outlet />
+              <PageBoundary key={pathname}>
+                <Outlet />
+              </PageBoundary>
             </main>
           </div>
         </div>

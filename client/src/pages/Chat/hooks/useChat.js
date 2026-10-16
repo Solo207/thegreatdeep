@@ -22,7 +22,6 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
     firstMessage ? [userMessage(firstMessage)] : []
   );
   const [attempt, setAttempt] = useState(0);
-
   const [meta, setMeta] = useState(null); // { id, title, rough } from the server
 
   // waiting for n8n
@@ -43,12 +42,12 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
       .then((data) => {
         if (ignore) return;
         setMessages(data.messages);
+        setMeta(data.chat ?? null);
         if (data.pending) {
           // n8n is still working on this chat: lock again and show the same words
           setIsWaiting(true);
           setWords(data.pending.words ?? []);
         }
-        setMeta(data.chat ?? null);
         setStatus("ready");
       })
       .catch((err) => {
@@ -60,7 +59,7 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
     return () => {
       ignore = true;
     };
-  }, [chatId, meta, attempt, firstMessage]);
+  }, [chatId, attempt, firstMessage]);
 
   // Every message pushed by the server for THIS chat goes to the bottom,
   // however many arrive. Only a message carrying "done" ends the waiting.
@@ -142,6 +141,7 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
     status,
     errorKind,
     messages,
+    meta,
     retry,
     send,
     isWaiting,

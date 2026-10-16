@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import ChatInput from "../../components/chat/ChatInput";
 import MessageList from "../../components/chat/MessageList";
+import { CHAT_MAX_WIDTH } from "../../components/chat/config";
 import { useHistory } from "../../components/sidebar/history-context";
 import NotFound from "../NotFound";
-import useChat from "./hooks/useChat";
-import { CHAT_MAX_WIDTH } from "../../components/chat/config";
 import ChatHeader from "./ChatHeader";
+import useChat from "./hooks/useChat";
 
 const ERROR_TEXT = {
   signed_out: "Your session has expired. Use Sign out (top right), then sign in again.",
@@ -20,9 +20,8 @@ function ChatScreen({ chatId }) {
   const navigate = useNavigate();
   const { refresh, chats } = useHistory();
 
-  // the message /new handed over (read once, when this screen is created)
+  // what /new (or a roughbook) handed over, read once when this screen is created
   const [firstMessage] = useState(() => location.state?.firstMessage ?? null);
-
   const [roughFromNav] = useState(() => location.state?.rough ?? "");
 
   // clear it from the router state so a refresh can't send it again
@@ -37,6 +36,7 @@ function ChatScreen({ chatId }) {
     status,
     errorKind,
     messages,
+    meta,
     retry,
     send,
     isWaiting,
@@ -44,7 +44,7 @@ function ChatScreen({ chatId }) {
     words,
     sendError,
     retrySend,
-  } = useChat(chatId, firstMessage, refresh, meta);
+  } = useChat(chatId, firstMessage, refresh);
 
   // title and roughbook name: from the chat list (freshest), else from the chat itself
   const entry = chats.find((c) => c.id === chatId);
