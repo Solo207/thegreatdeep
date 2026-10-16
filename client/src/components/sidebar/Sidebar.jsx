@@ -77,6 +77,7 @@ export default function Sidebar({
           onClick={onNavigate}
           className="mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-100 transition-colors hover:bg-zinc-800"
         >
+          <RoughbookMenu onNavigate={onNavigate} />
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
@@ -90,8 +91,7 @@ export default function Sidebar({
             <path d="M6 4h12v17l-6-4-6 4z" />
           </svg>
           Bookmarks
-        </Link>
-        <RoughbookMenu onNavigate={onNavigate} />
+        </Link>        
       </div>
 
       {/* scrolling middle */}
