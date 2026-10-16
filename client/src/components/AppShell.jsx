@@ -8,6 +8,7 @@ import useVisualViewportHeight from "../hooks/useVisualViewportHeight";
 import { SIDEBAR_SLIDE_MS, SIDEBAR_SWIPE_OPEN } from "./sidebar/config";
 import { requestChatFocus } from "../lib/keyboard";
 import useSwipe from "./sidebar/useSwipe";
+import RoughbooksProvider from "./roughbooks/RoughbooksProvider";
 
 export default function AppShell() {
   const {

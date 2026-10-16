@@ -10,6 +10,7 @@ import eventsRouter from "./src/routes/events.js";
 import internalRouter from "./src/routes/internal.js";
 import pqRouter from "./src/routes/pq.js";
 import bmRouter from "./src/routes/bm.js";
+import rbRouter from "./src/routes/rb.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -54,6 +55,12 @@ app.use(
   "/api/bm",
   rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: true, legacyHeaders: false }),
   bmRouter
+);
+
+app.use(
+  "/api/rb",
+  rateLimit({ windowMs: 60_000, limit: 60, standardHeaders: true, legacyHeaders: false }),
+  rbRouter
 );
 
 app.use(express.static(distPath));

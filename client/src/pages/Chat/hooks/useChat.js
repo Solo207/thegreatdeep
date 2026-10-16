@@ -23,6 +23,8 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
   );
   const [attempt, setAttempt] = useState(0);
 
+  const [meta, setMeta] = useState(null); // { id, title, rough } from the server
+
   // waiting for n8n
   const [isWaiting, setIsWaiting] = useState(Boolean(firstMessage));
   const [words, setWords] = useState([]);
@@ -46,6 +48,7 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
           setIsWaiting(true);
           setWords(data.pending.words ?? []);
         }
+        setMeta(data.chat ?? null);
         setStatus("ready");
       })
       .catch((err) => {
@@ -57,7 +60,7 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
     return () => {
       ignore = true;
     };
-  }, [chatId, attempt, firstMessage]);
+  }, [chatId, meta, attempt, firstMessage]);
 
   // Every message pushed by the server for THIS chat goes to the bottom,
   // however many arrive. Only a message carrying "done" ends the waiting.

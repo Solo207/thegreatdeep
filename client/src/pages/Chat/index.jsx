@@ -6,6 +6,7 @@ import { useHistory } from "../../components/sidebar/history-context";
 import NotFound from "../NotFound";
 import useChat from "./hooks/useChat";
 import { CHAT_MAX_WIDTH } from "../../components/chat/config";
+import ChatHeader from "./ChatHeader";
 
 const ERROR_TEXT = {
   signed_out: "Your session has expired. Use Sign out (top right), then sign in again.",
@@ -17,10 +18,12 @@ const ERROR_TEXT = {
 function ChatScreen({ chatId }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { refresh } = useHistory();
+  const { refresh, chats } = useHistory();
 
   // the message /new handed over (read once, when this screen is created)
   const [firstMessage] = useState(() => location.state?.firstMessage ?? null);
+
+  const [roughFromNav] = useState(() => location.state?.rough ?? "");
 
   // clear it from the router state so a refresh can't send it again
   useEffect(() => {
@@ -41,7 +44,12 @@ function ChatScreen({ chatId }) {
     words,
     sendError,
     retrySend,
-  } = useChat(chatId, firstMessage, refresh);
+  } = useChat(chatId, firstMessage, refresh, meta);
+
+  // title and roughbook name: from the chat list (freshest), else from the chat itself
+  const entry = chats.find((c) => c.id === chatId);
+  const title = entry?.title || meta?.title || "New chat";
+  const rough = entry?.rough || meta?.rough || roughFromNav || "";
 
   if (status === "loading") {
     return (
@@ -70,10 +78,11 @@ function ChatScreen({ chatId }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      <ChatHeader title={title} rough={rough} />
       <MessageList messages={messages} isLoading={isWaiting} words={words} onSelect={send} />
 
       <div className="px-4 pb-4">
-          <div className={`mx-auto w-full ${CHAT_MAX_WIDTH}`}>
+        <div className={`mx-auto w-full ${CHAT_MAX_WIDTH}`}>
           {sendError && (
             <div className="mb-2 flex items-center justify-between gap-3 rounded-lg border border-red-900 bg-red-950/40 px-3 py-2 text-sm text-red-200">
               <span>{ERROR_TEXT[sendError] ?? "Couldn't get a reply."}</span>

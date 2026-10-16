@@ -10,6 +10,7 @@ import {
   getPending,
 } from "../lib/pending.js";
 import { normalizeMessage, safeUrl } from "../lib/messages.js";
+import { RB_ID_RE } from "../lib/ids.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -78,11 +79,12 @@ function fail(res, err) {
   return res.status(502).json({ error: "Something went wrong" });
 }
 
-// 1. create a chat
+// 1. create a chat (inside a roughbook when "rb" is given)
 router.post("/", async (req, res) => {
-  console.log("create chat requested by", req.user.id);   // <-- add this
+  const rb = typeof req.body?.rb === "string" ? req.body.rb.trim() : "";
+  if (rb && !RB_ID_RE.test(rb)) return res.status(400).json({ error: "Invalid roughbook" });
   try {
-    const data = await callN8n("chat-create", { userId: req.user.id });
+    const data = await callN8n("chat-create", { userId: req.user.id, rb: rb || undefined });
     if (!UUID_RE.test(data?.chatId)) throw new Error("n8n returned a bad chatId");
     res.status(201).json({ id: data.chatId });
   } catch (err) {
@@ -103,6 +105,7 @@ router.get("/", async (req, res) => {
           id: c.id,
           title: String(c.title ?? ""),
           date: String(c.date ?? ""),
+          rough: typeof c.rough === "string" ? c.rough.slice(0, 100) : "",
         })),
       hasMore: !all && items.some((c) => c?.id === "show_more"),
     });
@@ -119,7 +122,11 @@ router.get("/:chatId", async (req, res) => {
     const data = await callN8n("chat-get", { userId: req.user.id, chatId });
     const waiting = getPending(req.user.id, chatId);
     res.json({
-      chat: { id: data.chat.id, title: data.chat.title },
+      chat: {
+        id: data.chat.id,
+        title: data.chat.title,
+        rough: typeof data.chat.rough === "string" ? data.chat.rough.slice(0, 100) : "",
+      },
       messages: (data.messages ?? []).map(normalizeMessage).filter(Boolean),
       // not null while n8n is still working on this chat
       pending: waiting ? { words: waiting.words } : null,

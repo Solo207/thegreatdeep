@@ -30,9 +30,12 @@ async function request(path, options = {}) {
   return res.json();
 }
 
-// Create an empty chat. Returns its id.
-export async function createChat() {
-  const data = await request("", { method: "POST" });
+// Create an empty chat (inside a roughbook when rb is given). Returns its id.
+export async function createChat({ rb } = {}) {
+  const data = await request("", {
+    method: "POST",
+    body: JSON.stringify(rb ? { rb } : {}),
+  });
   return data.id;
 }
 

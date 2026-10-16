@@ -6,7 +6,7 @@ import { useHistory } from "./history-context";
 import ResizeHandle from "./ResizeHandle";
 import { SIDEBAR_DEFAULT_WIDTH } from "./config";
 import { requestChatFocus, warmUpKeyboard } from "../../lib/keyboard";
-
+import RoughbookMenu from "./RoughbookMenu";
 
 export default function Sidebar({
   width = SIDEBAR_DEFAULT_WIDTH,
@@ -91,6 +91,7 @@ export default function Sidebar({
           </svg>
           Bookmarks
         </Link>
+        <RoughbookMenu onNavigate={onNavigate} />
       </div>
 
       {/* scrolling middle */}

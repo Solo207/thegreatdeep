@@ -10,6 +10,8 @@ import NotFound from "./pages/NotFound";
 import Chats from "./pages/Chats";
 import PastQuestions from "./pages/PastQuestions";
 import Bookmarks from "./pages/Bookmarks";
+import Roughbooks from "./pages/Roughbooks";
+import Roughbook from "./pages/Roughbook";
 
 export default function App() {
   return (
@@ -26,6 +28,8 @@ export default function App() {
             <Route path="/chats" element={<Chats />} />
             <Route path="/past_questions" element={<PastQuestions />} />
             <Route path="/bookmarks" element={<Bookmarks />} />
+            <Route path="/roughbook" element={<Roughbooks />} />
+            <Route path="/roughbook/:rbId" element={<Roughbook />} />
           </Route>
         </Route>
         <Route path="*" element={<NotFound />} />
