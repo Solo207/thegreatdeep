@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* every text uses a serif font (code keeps its monospace font) */
+@theme {
+  --font-sans: "Source Serif 4 Variable", ui-serif, Georgia, Cambria, "Times New Roman", serif;
+}
 /* Thin scrollbars that only show while the mouse is over a scrolling area */
 * {
   scrollbar-width: thin;

@@ -94,7 +94,7 @@ function ChatScreen({ chatId }) {
               </button>
             </div>
           )}
-          <ChatInput onSend={send} disabled={inputLocked} />
+          <ChatInput onSend={send} disabled={inputLocked} compact />
         </div>
       </div>
     </div>

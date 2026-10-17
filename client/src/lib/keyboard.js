@@ -15,3 +15,8 @@ export function warmUpKeyboard() {
   if (!isTouch()) return;
   document.getElementById("keyboard-bridge")?.focus();
 }
+// Closes the phone keyboard (whatever field has focus lets go).
+export function closeKeyboard() {
+  const el = document.activeElement;
+  if (el instanceof HTMLElement) el.blur();
+}

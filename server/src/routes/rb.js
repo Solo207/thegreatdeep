@@ -37,7 +37,12 @@ router.get("/", async (req, res) => {
 
 // 2. a new roughbook: n8n answers { id }
 router.post("/", async (req, res) => {
-  const name = cut(req.body?.name, 60);
+   // letters, numbers and single spaces only, at most 30 characters
+  const name = cut(req.body?.name, 200)
+    .replace(/[^\p{L}\p{N} ]/gu, "")
+    .replace(/ {2,}/g, " ")
+    .trim()
+    .slice(0, 30);
   if (!name) return res.status(400).json({ error: "Missing name" });
   try {
     const data = await callN8n("newrb", { rb_name: name, ...userOf(req) });

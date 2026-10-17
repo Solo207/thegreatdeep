@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import useVisualViewportHeight from "../../hooks/useVisualViewportHeight";
-
-const MAX_NAME = 60;
+import { RB_NAME_MAX, cleanRbName } from "./rules";
 
 // Asks for the roughbook's name. onCreate(name) should return a promise;
 // when it succeeds the page moves on, so this box just goes away.
@@ -52,15 +51,21 @@ export default function NewRoughbookDialog({ onCreate, onClose }) {
         <input
           autoFocus
           value={name}
-          maxLength={MAX_NAME}
+          maxLength={RB_NAME_MAX}
           disabled={busy}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => setName(cleanRbName(e.target.value))}
           onKeyDown={(e) => {
             if (e.key === "Enter") submit();
           }}
           placeholder="e.g. Cardiology notes"
           className="w-full rounded-xl border border-zinc-700 bg-transparent px-4 py-3 text-zinc-100 placeholder-zinc-500 outline-none focus:border-zinc-500 disabled:opacity-60"
         />
+        <div className="mt-1.5 flex justify-between text-xs text-zinc-500">
+          <span>Letters, numbers and spaces only</span>
+          <span>
+            {name.length}/{RB_NAME_MAX}
+          </span>
+        </div>
 
         {error && <p className="mt-3 text-sm text-red-300">{error}</p>}
 

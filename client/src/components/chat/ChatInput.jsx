@@ -8,7 +8,13 @@ const MAX_LENGTH = 4000;
 // marks web addresses in the box with a light highlight while you type (false turns it off)
 const HIGHLIGHT_LINKS = true;
 
-export default function ChatInput({ onSend, disabled = false, autoFocus = false, onFocusChange }) {
+export default function ChatInput({
+  onSend,
+  disabled = false,
+  autoFocus = false,
+  onFocusChange,
+  compact = false, // one line, with the send button beside the text
+}) {
   const [value, setValue] = useState("");
   const ref = useRef(null);
   const mirrorRef = useRef(null);
@@ -107,9 +113,11 @@ export default function ChatInput({ onSend, disabled = false, autoFocus = false,
       onClick={(e) => {
         if (!e.target.closest("button")) ref.current?.focus();
       }}
-      className="w-full cursor-text rounded-2xl border border-zinc-700 bg-zinc-800 p-3 shadow-lg transition-colors focus-within:border-zinc-500"
+      className={`w-full cursor-text rounded-2xl border border-zinc-700 bg-zinc-800 shadow-lg transition-colors focus-within:border-zinc-500 ${
+        compact ? "flex items-end gap-2 p-2 pl-4" : "p-3"
+      }`}
     >
-           <div className="relative">
+      <div className={`relative ${compact ? "min-w-0 flex-1 self-center py-1.5" : ""}`}>
         {HIGHLIGHT_LINKS && (
           <div
             ref={mirrorRef}
@@ -151,7 +159,7 @@ export default function ChatInput({ onSend, disabled = false, autoFocus = false,
         />
       </div>
       
-      <div className="mt-2 flex justify-end">
+        <div className={compact ? "shrink-0" : "mt-2 flex justify-end"}>
           <button
           onMouseDown={(e) => e.preventDefault()}
           onClick={submit}
