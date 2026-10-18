@@ -5,6 +5,7 @@ import WaitingIndicator from "./WaitingIndicator";
 import { bodyOf } from "./messages/utils";
 import { CHAT_MAX_WIDTH } from "./config";
 import LinkedText from "./LinkedText";
+import MessageMeta from "./messages/MessageMeta";
 
 const NEAR_BOTTOM_PX = 80;  // closer than this to the end counts as "at the end"
 const SHOW_BUTTON_PX = 300; // further than this from the end shows the arrow (about 3 messages)
@@ -141,12 +142,15 @@ export default function MessageList({ messages, isLoading, words = [], onSelect 
                   ref={i === lastUserIndex ? lastUserRef : null}
                   className="flex justify-end"
                 >
-                <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl bg-indigo-500 px-4 py-2.5 text-white [overflow-wrap:anywhere]">
-                    <LinkedText
-                      text={bodyOf(m)}
-                      linkClass="underline decoration-white/60 underline-offset-2 hover:decoration-white"
-               />
-                </div>
+                  <div className="flex max-w-[85%] flex-col items-end">
+                    <div className="whitespace-pre-wrap wrap-anywhere rounded-2xl bg-indigo-500 px-4 py-2.5 text-white">
+                      <LinkedText
+                        text={bodyOf(m)}
+                        linkClass="underline decoration-white/60 underline-offset-2 hover:decoration-white"
+                      />
+                    </div>
+                    <MessageMeta message={m} align="right" />
+                  </div>
                 </div>
               ) : (
                   <div className="min-w-0 px-1 text-zinc-100">
@@ -160,6 +164,7 @@ export default function MessageList({ messages, isLoading, words = [], onSelect 
                       onSelect={onSelect}
                     />
                   </MessageBoundary>
+                  <MessageMeta message={m} />
                 </div>
               )}
 

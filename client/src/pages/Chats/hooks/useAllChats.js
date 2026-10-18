@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getHistory } from "../../../lib/api/chats";
+import { getAllChats } from "../../../lib/api/chatActions";
 
 export default function useAllChats() {
   const [status, setStatus] = useState("loading"); // loading | ready | error
@@ -9,10 +9,10 @@ export default function useAllChats() {
   useEffect(() => {
     let ignore = false;
 
-    getHistory(true) // all = true: every chat, not just the latest 20
-      .then((data) => {
+    getAllChats() // asks n8n's all_chats: every chat
+      .then((list) => {
         if (ignore) return;
-        setChats(data.chats);
+        setChats(list);
         setStatus("ready");
       })
       .catch(() => {
@@ -30,5 +30,5 @@ export default function useAllChats() {
     setAttempt((n) => n + 1);
   };
 
-  return { status, chats, retry };
+  return { status, chats, setChats, retry };
 }

@@ -16,7 +16,7 @@ export default function Sidebar({
   onNavigate,
 }) {
   const navigate = useNavigate();
-  const { chats, hasMore, status, retry } = useHistory();
+    const { chats, pinned, hasMore, status, retry } = useHistory();
   const activeId = useMatch("/chat/:chatId")?.params.chatId;
 
   return (
@@ -96,7 +96,22 @@ export default function Sidebar({
 
       {/* scrolling middle */}
       <nav className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
-                <Link
+        
+        {pinned.length > 0 && (
+          <>
+            <p className="px-3 pb-1 pt-2 text-xs text-zinc-500">Pinned</p>
+            {pinned.map((c) => (
+              <ChatListItem
+                key={`pin-${c.id}`}
+                chat={c}
+                active={c.id === activeId}
+                onNavigate={onNavigate}
+              />
+            ))}
+          </>
+        )}
+        
+        <Link
           to="/chats"
           onClick={onNavigate}
           title="All chats"
@@ -142,10 +157,9 @@ export default function Sidebar({
           chats.map((c) => (
             <ChatListItem
               key={c.id}
-              to={`/chat/${c.id}`}
-              title={c.title}
+              chat={c}
               active={c.id === activeId}
-              onClick={onNavigate}
+              onNavigate={onNavigate}
             />
           ))}
 

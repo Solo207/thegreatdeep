@@ -1,22 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getHistory } from "../../lib/api/chats";
-import { HistoryContext } from "./history-context";
+import { getPinned } from "../../lib/api/chatActions";
 import { useEvents } from "../events/events-context";
+import { HistoryContext } from "./history-context";
 
 export default function HistoryProvider({ children }) {
   const [chats, setChats] = useState([]);
+  const [pinned, setPinned] = useState([]);
   const [hasMore, setHasMore] = useState(false);
   const [status, setStatus] = useState("loading"); // loading | ready | error
   const latest = useRef(0);
 
-  // Reload the list in the background. The old list stays on screen meanwhile.
+  // Reload the lists in the background. The old lists stay on screen meanwhile.
   const refresh = useCallback(async () => {
     const id = ++latest.current;
     try {
-      const data = await getHistory(false);
+      // the pinned list is optional: if it fails, the old one stays
+      const [data, pins] = await Promise.all([getHistory(), getPinned().catch(() => null)]);
       if (id !== latest.current) return; // a newer request already won
       setChats(data.chats);
       setHasMore(data.hasMore);
+      if (pins) setPinned(pins);
       setStatus("ready");
     } catch {
       if (id !== latest.current) return;
@@ -35,7 +39,7 @@ export default function HistoryProvider({ children }) {
 
   const { subscribe } = useEvents();
 
-  // when a reply arrives, the list (titles, order) may have changed
+  // when a reply arrives, the lists (titles, order) may have changed
   useEffect(
     () =>
       subscribe((evt) => {
@@ -45,7 +49,7 @@ export default function HistoryProvider({ children }) {
   );
 
   return (
-    <HistoryContext.Provider value={{ chats, hasMore, status, refresh, retry }}>
+    <HistoryContext.Provider value={{ chats, pinned, hasMore, status, refresh, retry }}>
       {children}
     </HistoryContext.Provider>
   );

@@ -9,6 +9,7 @@ const userMessage = (text) => ({
   id: crypto.randomUUID(),
   role: "user",
   type: "text",
+  createdAt: "just now",
   content: { body: text },
 });
 

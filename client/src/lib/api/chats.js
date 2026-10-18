@@ -53,9 +53,9 @@ export function sendMessage(chatId, content, selection = null) {
   });
 }
 
-// Load the chat list. Returns { chats: [{ id, title, date }], hasMore }
-export function getHistory(all = false) {
-  return request(all ? "?all=true" : "");
+// The latest chats for the sidebar. Returns { chats: [{ id, title, date, rough }], hasMore }
+export function getHistory() {
+  return request("");
 }
 
 // Download a document. n8n's workflow produces the file, and the server passes it on.

@@ -92,11 +92,10 @@ router.post("/", async (req, res) => {
   }
 });
 
-// 0. list chats (sidebar and /chats page)
+// 0. the latest chats for the sidebar (get-history answers 20, plus a "show_more" item if there are more)
 router.get("/", async (req, res) => {
-  const all = req.query.all === "true";
   try {
-    const data = await callN8n("get-history", { userId: req.user.id, all });
+    const data = await callN8n("get-history", { userId: req.user.id });
     const items = Array.isArray(data) ? data : [];
     res.json({
       chats: items
@@ -107,7 +106,7 @@ router.get("/", async (req, res) => {
           date: String(c.date ?? ""),
           rough: typeof c.rough === "string" ? c.rough.slice(0, 100) : "",
         })),
-      hasMore: !all && items.some((c) => c?.id === "show_more"),
+      hasMore: items.some((c) => c?.id === "show_more"),
     });
   } catch (err) {
     fail(res, err);
@@ -120,12 +119,16 @@ router.get("/:chatId", async (req, res) => {
   if (!UUID_RE.test(chatId)) return res.status(404).json({ error: "Not found" });
   try {
     const data = await callN8n("chat-get", { userId: req.user.id, chatId });
+    // the answer is { id, title, rough?, messages }
+    const chat = data?.chat ?? data;
+    if (!chat || typeof chat !== "object") throw new Error("n8n returned no chat");
+    const rough = chat.rough ?? data?.rough;
     const waiting = getPending(req.user.id, chatId);
     res.json({
       chat: {
-        id: data.chat.id,
-        title: data.chat.title,
-        rough: typeof data.chat.rough === "string" ? data.chat.rough.slice(0, 100) : "",
+        id: chat.id ?? chatId,
+        title: chat.title,
+        rough: typeof rough === "string" ? rough.slice(0, 100) : "",
       },
       messages: (data.messages ?? []).map(normalizeMessage).filter(Boolean),
       // not null while n8n is still working on this chat
