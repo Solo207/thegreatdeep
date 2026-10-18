@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 const WIDTH = 224; // px
@@ -64,6 +64,7 @@ export default function ChatItemMenu({
   onRemoveRough,
 }) {
   const [listOpen, setListOpen] = useState(false);
+  const openedAt = useRef(Date.now());
 
   useEffect(() => {
     const onKey = (e) => {
@@ -94,7 +95,9 @@ export default function ChatItemMenu({
     <>
       <div
         className="fixed inset-0 z-60"
-        onClick={onClose}
+        onClick={() => {
+          if (Date.now() - openedAt.current > 350) onClose();
+        }}
         onContextMenu={(e) => {
           e.preventDefault();
           onClose();
@@ -125,7 +128,7 @@ export default function ChatItemMenu({
               </span>
             }
           >
-            {rough ? "Change project" : "Add to projects"}
+            {rough ? "Change roughbook" : "Add to roughbook"}
           </Item>
 
           {listOpen && (
@@ -150,11 +153,11 @@ export default function ChatItemMenu({
                   ))}
               </div>
               <Item iconNode={ICONS.plus} onClick={onNewRough}>
-                New rough
+                New roughbook
               </Item>
               {rough && (
                 <Item iconNode={ICONS.remove} onClick={onRemoveRough} danger>
-                  Remove from rough book
+                  Remove from roughbook
                 </Item>
               )}
             </div>

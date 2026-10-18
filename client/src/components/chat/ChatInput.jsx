@@ -52,6 +52,9 @@ export default function ChatInput({
     if (!autoFocus || !isTouch) return;
 
     const onTap = (e) => {
+      // a menu or a pop-up is open: taps around it are not "empty space"
+      if (document.querySelector("[role='menu'], [role='dialog']")) return;
+
       // taps on buttons, links, fields and the sidebar do their own thing
       const onControl =
         e.target instanceof Element &&
@@ -122,7 +125,7 @@ export default function ChatInput({
           <div
             ref={mirrorRef}
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 overflow-y-hidden whitespace-pre-wrap break-words px-1 text-transparent"
+            className="pointer-events-none absolute inset-0 overflow-y-hidden whitespace-pre-wrap wrap-break-word px-1 text-transparent"
           >
             {splitLinks(value).map((part, i) =>
               part.href ? (
@@ -155,7 +158,7 @@ export default function ChatInput({
             if (mirrorRef.current) mirrorRef.current.scrollTop = e.currentTarget.scrollTop;
           }}
           placeholder={disabled ? "Waiting for the reply..." : "Ask anything..."}
-          className="relative max-h-[200px] w-full resize-none bg-transparent px-1 text-zinc-100 placeholder-zinc-500 outline-none disabled:cursor-not-allowed disabled:placeholder-zinc-600"
+          className="relative max-h-50 w-full resize-none bg-transparent px-1 text-zinc-100 placeholder-zinc-500 outline-none disabled:cursor-not-allowed disabled:placeholder-zinc-600"
         />
       </div>
       

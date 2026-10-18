@@ -67,7 +67,7 @@ export default function Roughbook() {
         <ChatInput onSend={start} disabled={isStarting} />
 
         {/* key: switching roughbooks starts the history fresh */}
-        <RoughbookHistory key={rbId} rbId={rbId} />
+        <RoughbookHistory key={rbId} rbId={rbId} roughName={name} />
       </div>
     </div>
   );

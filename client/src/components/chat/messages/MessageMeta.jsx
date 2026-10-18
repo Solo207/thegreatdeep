@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { describeTime } from "../../../lib/time";
-import { bodyOf } from "./utils";
 
 async function copyText(text) {
   try {
@@ -24,11 +23,12 @@ async function copyText(text) {
   }
 }
 
-// The tiny line under a message: a copy icon and the time (createdAt).
-export default function MessageMeta({ message, align = "left" }) {
+// The tiny line under a message: a copy icon and the time.
+//   text       what the copy icon copies
+//   createdAt  the time text of the message (e.g. "10 hours ago")
+export default function MessageMeta({ text, createdAt, align = "left" }) {
   const [copied, setCopied] = useState(false);
-  const text = bodyOf(message);
-  const time = describeTime(message.createdAt);
+  const time = describeTime(createdAt);
   if (!text && !time) return null;
 
   const copy = async () => {

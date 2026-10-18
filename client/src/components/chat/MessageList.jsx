@@ -124,6 +124,18 @@ export default function MessageList({ messages, isLoading, words = [], onSelect 
   const nextText = (i) =>
     messages[i + 1]?.role === "user" ? bodyOf(messages[i + 1]) : null;
 
+    // The last message of each run of bot messages (the one before your next message,
+  // or the newest in the chat) carries the copy icon and time. Copy takes the whole run.
+  const isRunEnd = (i) => messages[i + 1] === undefined || messages[i + 1].role === "user";
+  const runText = (i) => {
+    const parts = [];
+    for (let j = i; j >= 0 && messages[j].role !== "user"; j--) {
+      const t = bodyOf(messages[j]);
+      if (t) parts.unshift(t);
+    }
+    return parts.join("\n\n");
+  };
+
   return (
     <div className="relative min-h-0 flex-1">
       <div
@@ -149,7 +161,7 @@ export default function MessageList({ messages, isLoading, words = [], onSelect 
                         linkClass="underline decoration-white/60 underline-offset-2 hover:decoration-white"
                       />
                     </div>
-                    <MessageMeta message={m} align="right" />
+                                        <MessageMeta text={bodyOf(m)} createdAt={m.createdAt} align="right" />
                   </div>
                 </div>
               ) : (
@@ -164,7 +176,9 @@ export default function MessageList({ messages, isLoading, words = [], onSelect 
                       onSelect={onSelect}
                     />
                   </MessageBoundary>
-                  <MessageMeta message={m} />
+                  {isRunEnd(i) && !(isLoading && i === messages.length - 1) && (
+                    <MessageMeta text={runText(i)} createdAt={m.createdAt} />
+                  )}
                 </div>
               )}
 

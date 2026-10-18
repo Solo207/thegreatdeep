@@ -1,99 +1,18 @@
 import { useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import useLongPress from "./useLongPress";
-import ChatItemMenu from "./ChatItemMenu";
-import RenameDialog from "./RenameDialog";
-import { useHistory } from "./history-context";
-import { useRoughbooks } from "../roughbooks/roughbooks-context";
-import ConfirmDialog from "../../pages/PastQuestions/ConfirmDialog";
-import NewRoughbookDialog from "../../pages/Roughbooks/NewRoughbookDialog";
-import { createRoughbook } from "../../lib/api/rb";
-import {
-  addChatToRough,
-  deleteChats,
-  pinChat,
-  removeChatFromRough,
-  renameChat,
-} from "../../lib/api/chatActions";
+import ChatActions from "./ChatActions";
 
 // One chat in the sidebar: a link, a 3-dots button on hover (computers)
 // and a menu on long press (phones).
 export default function ChatListItem({ chat, active = false, onNavigate }) {
-  const navigate = useNavigate();
-  const { refresh, pinned: pinnedList } = useHistory();
-  const roughbooks = useRoughbooks();
   const rowRef = useRef(null);
-
   const [menu, setMenu] = useState(null); // null | { rect }
-  const [dialog, setDialog] = useState(null); // null | "rename" | "delete" | "newrough"
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
-
-  const isPinned = pinnedList.some((p) => p.id === chat.id);
 
   const openMenu = (el) => setMenu({ rect: el.getBoundingClientRect() });
   const longPress = useLongPress(() => {
     if (rowRef.current) openMenu(rowRef.current);
   });
-  const closeMenu = () => setMenu(null);
-  const openDialog = (name) => {
-    closeMenu();
-    setError(null);
-    setDialog(name);
-  };
-  const closeDialog = () => {
-    setDialog(null);
-    setBusy(false);
-    setError(null);
-  };
-
-  // the quick actions: do it, then reload the lists
-  const run = async (action) => {
-    closeMenu();
-    try {
-      await action();
-      await refresh();
-    } catch (err) {
-      console.error("Chat action failed:", err);
-    }
-  };
-  const togglePin = () => run(() => pinChat(chat.id, !isPinned));
-  const pickRough = (book) => run(() => addChatToRough(chat.id, book));
-  const removeRough = () => run(() => removeChatFromRough(chat.id, chat.rough));
-
-  const saveName = async (name) => {
-    await renameChat(chat.id, name);
-    await refresh();
-    closeDialog();
-  };
-
-  const confirmDelete = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      await deleteChats([chat.id]);
-      await refresh();
-      closeDialog();
-      if (active) {
-        navigate("/new");
-        onNavigate?.();
-      }
-    } catch {
-      setError("Couldn't delete it. Please try again.");
-      setBusy(false);
-    }
-  };
-
-  // a brand new roughbook: create it, put this chat in it, then open it
-  const createAndAdd = async (name) => {
-    const id = await createRoughbook(name);
-    roughbooks.add({ id, title: name, last_updated: "just now" });
-    await addChatToRough(chat.id, { id, title: name });
-    await refresh();
-    closeDialog();
-    navigate(`/roughbook/${id}`);
-    onNavigate?.();
-  };
 
   return (
     <div
@@ -134,38 +53,14 @@ export default function ChatListItem({ chat, active = false, onNavigate }) {
       </button>
 
       {menu && (
-        <ChatItemMenu
+        <ChatActions
+          chat={chat}
           rect={menu.rect}
-          pinned={isPinned}
           rough={chat.rough || ""}
-          books={roughbooks.books}
-          booksStatus={roughbooks.status}
-          onClose={closeMenu}
-          onPin={togglePin}
-          onRename={() => openDialog("rename")}
-          onDelete={() => openDialog("delete")}
-          onNeedBooks={roughbooks.ensureLoaded}
-          onPick={pickRough}
-          onNewRough={() => openDialog("newrough")}
-          onRemoveRough={removeRough}
+          active={active}
+          onClose={() => setMenu(null)}
+          onNavigate={onNavigate}
         />
-      )}
-
-      {dialog === "rename" && (
-        <RenameDialog initial={chat.title} onSave={saveName} onClose={closeDialog} />
-      )}
-      {dialog === "delete" && (
-        <ConfirmDialog
-          heading="Delete this chat?"
-          message={`"${chat.title}" will be deleted for good.`}
-          busy={busy}
-          error={error}
-          onConfirm={confirmDelete}
-          onCancel={closeDialog}
-        />
-      )}
-      {dialog === "newrough" && (
-        <NewRoughbookDialog onCreate={createAndAdd} onClose={closeDialog} />
       )}
     </div>
   );
