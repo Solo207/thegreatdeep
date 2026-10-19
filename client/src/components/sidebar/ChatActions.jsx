@@ -4,6 +4,7 @@ import ChatItemMenu from "./ChatItemMenu";
 import RenameDialog from "./RenameDialog";
 import { useHistory } from "./history-context";
 import { useRoughbooks } from "../roughbooks/roughbooks-context";
+import { useToast } from "../toast/toast-context";
 import ConfirmDialog from "../../pages/PastQuestions/ConfirmDialog";
 import NewRoughbookDialog from "../../pages/Roughbooks/NewRoughbookDialog";
 import { createRoughbook } from "../../lib/api/rb";
@@ -16,7 +17,7 @@ import {
 } from "../../lib/api/chatActions";
 
 // The menu of a chat (Pin, Rename, Delete, Roughbook) and the boxes it opens.
-// Used by the sidebar, the /chats page and a roughbook's chat history.
+// Used by the sidebar, the /chats page, a roughbook's chat history and the chat header.
 //   rect, roughId, rough  where the row is, and (optionally) the roughbook the chat is in;
 //                         they default to what the chat itself says (chat.roughId, chat.rough)
 //   onChanged             called after any change, so a page can reload its own list
@@ -31,6 +32,7 @@ export default function ChatActions({
   onChanged,
 }) {
   const navigate = useNavigate();
+  const toast = useToast();
   const { refresh, pinned: pinnedList } = useHistory();
   const roughbooks = useRoughbooks();
   const [view, setView] = useState("menu"); // menu | rename | delete | newrough
@@ -39,7 +41,12 @@ export default function ChatActions({
 
   const roughName = rough || chat.rough || "";
   const currentRoughId = roughId || chat.roughId || "";
+  const hasRough = Boolean(roughName || currentRoughId);
   const isPinned = chat.pin === true || pinnedList.some((p) => p.id === chat.id);
+
+  // the roughbook the chat is in: matched by id; by name only if no id is known
+  const isCurrent = (b) =>
+    currentRoughId ? b.id === currentRoughId : Boolean(roughName) && b.title === roughName;
 
   // reload every list that shows chats
   const reload = async () => {
@@ -47,21 +54,36 @@ export default function ChatActions({
     await onChanged?.();
   };
 
-  // the quick actions: close the menu, do it, reload
-  const run = async (action) => {
+  // the quick actions: close the menu, do it, reload, tell the user
+  const run = async (action, doneText) => {
     onClose();
     try {
       await action();
       await reload();
+      toast(doneText);
     } catch (err) {
       console.error("Chat action failed:", err);
+      toast("Something went wrong. Please try again.", "error");
     }
+  };
+
+  const pick = (book) => {
+    if (isCurrent(book)) {
+      onClose();
+      toast(`Already in ${book.title}`);
+      return;
+    }
+    run(
+      () => addChatToRough(chat.id, book),
+      hasRough ? `Moved to ${book.title}` : `Added to ${book.title}`
+    );
   };
 
   const saveName = async (name) => {
     await renameChat(chat.id, name);
     await reload();
     onClose();
+    toast("Chat renamed");
   };
 
   const confirmDelete = async () => {
@@ -71,6 +93,7 @@ export default function ChatActions({
       await deleteChats([chat.id]);
       await reload();
       onClose();
+      toast("Chat deleted");
       if (active) {
         navigate("/new");
         onNavigate?.();
@@ -88,6 +111,7 @@ export default function ChatActions({
     await addChatToRough(chat.id, { id, title: name });
     await reload();
     onClose();
+    toast(`Added to ${name}`);
     navigate(`/roughbook/${id}`);
     onNavigate?.();
   };
@@ -117,22 +141,27 @@ export default function ChatActions({
     <ChatItemMenu
       rect={rect}
       pinned={isPinned}
-      hasRough={Boolean(roughName || currentRoughId)}
-      roughId={currentRoughId}
+      hasRough={hasRough}
+      isCurrent={isCurrent}
       books={roughbooks.books}
       booksStatus={roughbooks.status}
       onClose={onClose}
-      onPin={() => run(() => pinChat(chat.id, !isPinned))}
+      onPin={() =>
+        run(() => pinChat(chat.id, !isPinned), isPinned ? "Chat unpinned" : "Chat pinned")
+      }
       onRename={() => setView("rename")}
       onDelete={() => {
         setError(null);
         setView("delete");
       }}
       onNeedBooks={roughbooks.ensureLoaded}
-      onPick={(book) => run(() => addChatToRough(chat.id, book))}
+      onPick={pick}
       onNewRough={() => setView("newrough")}
       onRemoveRough={() =>
-        run(() => removeChatFromRough(chat.id, { id: currentRoughId, name: roughName }))
+        run(
+          () => removeChatFromRough(chat.id, { id: currentRoughId, name: roughName }),
+          "Removed from roughbook"
+        )
       }
     />
   );

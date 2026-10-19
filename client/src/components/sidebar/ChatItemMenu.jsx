@@ -4,13 +4,13 @@ import MenuItem from "../MenuItem";
 import { ICONS } from "../menu-icons";
 
 // The tiny menu of a chat: Pin, Rename, Delete and Add to / Change roughbook.
-//   hasRough  the chat is already in a roughbook
-//   roughId   that roughbook's id (the tick is placed by id, never by name)
+//   hasRough   the chat is already in a roughbook
+//   isCurrent  isCurrent(book) is true for the roughbook the chat is in (that one gets the tick)
 export default function ChatItemMenu({
   rect,
   pinned,
   hasRough,
-  roughId,
+  isCurrent,
   books, // the user's roughbooks [{ id, title }]
   booksStatus, // idle | loading | ready | error
   onClose,
@@ -72,11 +72,9 @@ export default function ChatItemMenu({
                 books.map((b) => (
                   <MenuItem
                     key={b.id}
-                    iconNode={
-                      b.id === roughId ? ICONS.check : <span className="h-4 w-4 shrink-0" />
-                    }
+                    iconNode={isCurrent(b) ? ICONS.check : <span className="h-4 w-4 shrink-0" />}
                     onClick={() => onPick(b)}
-                    selected={b.id === roughId}
+                    selected={isCurrent(b)}
                   >
                     {b.title}
                   </MenuItem>

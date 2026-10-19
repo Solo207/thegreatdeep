@@ -12,6 +12,7 @@ import useSwipe from "./sidebar/useSwipe";
 import useVisualViewportHeight from "../hooks/useVisualViewportHeight";
 import { SIDEBAR_SLIDE_MS, SIDEBAR_SWIPE_OPEN } from "./sidebar/config";
 import { requestChatFocus, closeKeyboard } from "../lib/keyboard";
+import ToastProvider from "./toast/ToastProvider";
 
 export default function AppShell() {
   const {
@@ -58,6 +59,7 @@ export default function AppShell() {
   });
 
   return (
+    <ToastProvider>
     <EventsProvider>
       <HistoryProvider>
         <RoughbooksProvider>
@@ -134,8 +136,8 @@ export default function AppShell() {
               {/* top strip: the sidebar button, with the page's title on the same line */}
               {!isOpen && (
                 <div
-                  className={`flex h-[60px] shrink-0 items-center gap-2 p-3 ${
-                    isDesktop ? "pl-[60px]" : ""
+                  className={`flex h-15 shrink-0 items-center gap-2 p-3 ${
+                    isDesktop ? "pl-15" : ""
                   }`}
                 >
                   {!isDesktop && <SidebarToggle onClick={toggleAndFocus} />}
@@ -154,5 +156,6 @@ export default function AppShell() {
         </RoughbooksProvider>
       </HistoryProvider>
     </EventsProvider>
+    </ToastProvider>
   );
 }

@@ -8,11 +8,13 @@ import { deleteChats } from "../../lib/api/chatActions";
 import { warmUpKeyboard } from "../../lib/keyboard";
 import ConfirmDialog from "../PastQuestions/ConfirmDialog";
 import useAllChats from "./hooks/useAllChats";
+import { useToast } from "../../components/toast/toast-context";
 
 const buttonStyle =
   "cursor-pointer rounded-lg border border-zinc-700 px-3.5 py-2 text-sm transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50";
 
 export default function Chats() {
+  const { toast } = useToast();
   const { status, chats, setChats, retry, reload } = useAllChats();
   const { refresh } = useHistory();
   const [selecting, setSelecting] = useState(false);
@@ -42,6 +44,7 @@ export default function Chats() {
     setDeleteState("busy");
     try {
       await deleteChats([...picked]);
+      toast(`${picked.size} ${picked.size === 1 ? "chat" : "chats"} deleted`);
       setChats((prev) => prev.filter((c) => !picked.has(c.id)));
       setConfirming(false);
       setDeleteState("idle");
@@ -85,6 +88,25 @@ export default function Chats() {
             )}
           </div>
         </div>
+
+        {/* select mode: the actions stay at the top, under the title, and follow you as you scroll */}
+        {selecting && (
+          <div className="sticky top-0 z-10 -mx-4 mb-2 flex items-center gap-3 border-b border-zinc-800 bg-zinc-900/95 px-4 pb-3 pt-1 backdrop-blur">
+            <button onClick={selectAll} className={`${buttonStyle} flex-1 py-3`}>
+              {allPicked ? "Clear all" : "Select all"}
+            </button>
+            <button
+              onClick={() => {
+                setDeleteState("idle");
+                setConfirming(true);
+              }}
+              disabled={picked.size === 0}
+              className="flex-1 cursor-pointer rounded-lg bg-red-500 py-3 text-sm font-bold text-white transition-colors hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Delete{picked.size > 0 ? ` (${picked.size})` : ""}
+            </button>
+          </div>
+        )}
 
         {status === "loading" && (
           <div className="divide-y divide-zinc-800">
@@ -167,26 +189,7 @@ export default function Chats() {
         )}
       </div>
 
-      {/* select mode: the actions sit in a bar pinned to the bottom, with big buttons */}
-      {selecting && (
-        <div className="sticky bottom-0 border-t border-zinc-800 bg-zinc-900/95 px-4 py-3 backdrop-blur">
-          <div className={`mx-auto flex w-full ${CHAT_MAX_WIDTH} items-center gap-3`}>
-            <button onClick={selectAll} className={`${buttonStyle} flex-1 py-3`}>
-              {allPicked ? "Clear all" : "Select all"}
-            </button>
-            <button
-              onClick={() => {
-                setDeleteState("idle");
-                setConfirming(true);
-              }}
-              disabled={picked.size === 0}
-              className="flex-1 cursor-pointer rounded-lg bg-red-500 py-3 text-sm font-bold text-white transition-colors hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Delete{picked.size > 0 ? ` (${picked.size})` : ""}
-            </button>
-          </div>
-        </div>
-      )}
+      
 
       {confirming && (
         <ConfirmDialog

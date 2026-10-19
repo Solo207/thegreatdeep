@@ -4,6 +4,7 @@ import MenuItem from "../MenuItem";
 import { ICONS } from "../menu-icons";
 import { useHistory } from "../sidebar/history-context";
 import { useRoughbooks } from "./roughbooks-context";
+import { useToast } from "../toast/toast-context";
 import NewRoughbookDialog from "../../pages/Roughbooks/NewRoughbookDialog";
 import DeleteRoughbookDialog from "../../pages/Roughbooks/DeleteRoughbookDialog";
 import { deleteRoughbook, renameRoughbook } from "../../lib/api/rb";
@@ -15,6 +16,7 @@ import { deleteRoughbook, renameRoughbook } from "../../lib/api/rb";
 export default function RoughbookActions({ book, rect, onClose, onDeleted }) {
   const { refresh } = useHistory();
   const roughbooks = useRoughbooks();
+  const toast = useToast();
   const [view, setView] = useState("menu"); // menu | rename | delete
 
   const saveName = async (name) => {
@@ -22,6 +24,7 @@ export default function RoughbookActions({ book, rect, onClose, onDeleted }) {
     roughbooks.update(book.id, { title: name });
     await refresh(); // the chats' "roughbook / title" labels
     onClose();
+    toast("Roughbook renamed");
   };
 
   const confirmDelete = async (includeChats) => {
@@ -29,6 +32,7 @@ export default function RoughbookActions({ book, rect, onClose, onDeleted }) {
     roughbooks.remove(book.id);
     await refresh(); // its chats are gone, or have lost their roughbook
     onClose();
+    toast(includeChats ? "Roughbook and its chats deleted" : "Roughbook deleted");
     onDeleted?.();
   };
 

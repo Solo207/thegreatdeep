@@ -6,6 +6,7 @@ import { createRoughbook } from "../../lib/api/rb";
 import NewRoughbookDialog from "./NewRoughbookDialog";
 import RoughbookActions from "../../components/roughbooks/RoughbookActions";
 import MenuRow from "../../components/MenuRow";
+import { useToast } from "../../components/toast/toast-context";
 
 function NewButton({ onClick, className = "" }) {
   return (
@@ -31,6 +32,7 @@ function NewButton({ onClick, className = "" }) {
 }
 
 export default function Roughbooks() {
+  const toast = useToast();
   const { books, status, refresh, add } = useRoughbooks();
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
@@ -45,6 +47,7 @@ export default function Roughbooks() {
   const create = async (name) => {
     const id = await createRoughbook(name);
     add({ id, title: name, last_updated: "just now" });
+    toast(`"${name}" created`);
     navigate(`/roughbook/${id}`);
   };
 

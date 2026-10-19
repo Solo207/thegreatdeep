@@ -65,6 +65,15 @@ function ChatScreen({ chatId }) {
     roughFromNav ||
     "";
 
+  // what the header's 3-dots menu works on
+  const chatForMenu = {
+    id: chatId,
+    title,
+    rough,
+    roughId: listedRoughId,
+    pin: pinned.some((p) => p.id === chatId),
+  };
+
   if (status === "loading") {
     return (
       <div className="flex flex-1 items-center justify-center text-zinc-500">
@@ -92,7 +101,7 @@ function ChatScreen({ chatId }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <ChatHeader title={title} rough={rough} />
+      <ChatHeader chat={chatForMenu} />
       <MessageList messages={messages} isLoading={isWaiting} words={words} onSelect={send} />
 
       <div className="px-4 pb-4">
