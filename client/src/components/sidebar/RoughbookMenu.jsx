@@ -1,6 +1,67 @@
-import { useState } from "react";
-import { Link, useMatch } from "react-router-dom";
+import { useRef, useState } from "react";
+import { Link, useMatch, useNavigate } from "react-router-dom";
 import { useRoughbooks } from "../roughbooks/roughbooks-context";
+import RoughbookActions from "../roughbooks/RoughbookActions";
+import useLongPress from "./useLongPress";
+
+// One roughbook in the dropdown: a link, a 3-dots button on hover (computers)
+// and a menu on long press (phones).
+function BookRow({ book, active, onNavigate }) {
+  const navigate = useNavigate();
+  const rowRef = useRef(null);
+  const [menu, setMenu] = useState(null); // null | { rect }
+
+  const openMenu = (el) => setMenu({ rect: el.getBoundingClientRect() });
+  const longPress = useLongPress(() => {
+    if (rowRef.current) openMenu(rowRef.current);
+  });
+
+  return (
+    <div
+      ref={rowRef}
+      className="group relative select-none [-webkit-touch-callout:none]"
+      {...longPress}
+    >
+      <Link
+        to={`/roughbook/${book.id}`}
+        onClick={onNavigate}
+        className={`block truncate rounded-lg py-1.5 pl-3 pr-3 text-sm transition-colors group-hover:pr-9 ${
+          active ? "bg-zinc-800 text-zinc-50" : "text-zinc-300 group-hover:bg-zinc-800/60"
+        }`}
+      >
+        {book.title}
+      </Link>
+
+      <button
+        onClick={(e) => openMenu(e.currentTarget)}
+        aria-label="Roughbook options"
+        className={`absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-zinc-400 transition-opacity hover:bg-zinc-700 hover:text-zinc-100 focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:hidden ${
+          menu ? "opacity-100" : "opacity-0"
+        }`}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+          <circle cx="5" cy="12" r="1.7" />
+          <circle cx="12" cy="12" r="1.7" />
+          <circle cx="19" cy="12" r="1.7" />
+        </svg>
+      </button>
+
+      {menu && (
+        <RoughbookActions
+          book={book}
+          rect={menu.rect}
+          onClose={() => setMenu(null)}
+          onDeleted={() => {
+            if (active) {
+              navigate("/roughbook");
+              onNavigate?.();
+            }
+          }}
+        />
+      )}
+    </div>
+  );
+}
 
 // The "Rough books" row: the label opens /roughbook (and the list), the chevron at the
 // end only opens or closes the list of roughbook titles.
@@ -89,18 +150,7 @@ export default function RoughbookMenu({ onNavigate }) {
 
           {status === "ready" &&
             books.map((b) => (
-              <Link
-                key={b.id}
-                to={`/roughbook/${b.id}`}
-                onClick={onNavigate}
-                className={`block truncate rounded-lg px-3 py-1.5 text-sm transition-colors ${
-                  b.id === activeId
-                    ? "bg-zinc-800 text-zinc-50"
-                    : "text-zinc-300 hover:bg-zinc-800/60"
-                }`}
-              >
-                {b.title}
-              </Link>
+              <BookRow key={b.id} book={b} active={b.id === activeId} onNavigate={onNavigate} />
             ))}
         </div>
       )}

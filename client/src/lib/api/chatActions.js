@@ -37,5 +37,6 @@ export const deleteChats = (chatIds) => post("/delete", { chatIds });
 // book = { id, title } of the roughbook
 export const addChatToRough = (chatId, book) =>
   post(`/${chatId}/rough`, { roughId: book.id, roughName: book.title });
-export const removeChatFromRough = (chatId, roughName) =>
-  post(`/${chatId}/rough/remove`, { roughName });
+// book = { id, name } of the roughbook the chat is in (matched by id)
+export const removeChatFromRough = (chatId, { id, name }) =>
+  post(`/${chatId}/rough/remove`, { roughId: id, roughName: name });

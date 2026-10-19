@@ -4,6 +4,7 @@ import { CHAT_MAX_WIDTH } from "../../components/chat/config";
 import { useRoughbooks } from "../../components/roughbooks/roughbooks-context";
 import { createRoughbook } from "../../lib/api/rb";
 import NewRoughbookDialog from "./NewRoughbookDialog";
+import RoughbookActions from "../../components/roughbooks/RoughbookActions";
 
 function NewButton({ onClick, className = "" }) {
   return (
@@ -32,6 +33,7 @@ export default function Roughbooks() {
   const { books, status, refresh, add } = useRoughbooks();
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
+  const [menu, setMenu] = useState(null); // null | { book, rect }
 
   // the page opens: ask n8n (rb) for the roughbooks
   useEffect(() => {
@@ -85,15 +87,28 @@ export default function Roughbooks() {
         {status === "ready" && books.length > 0 && (
           <ul className="divide-y divide-zinc-800">
             {books.map((b) => (
-              <li key={b.id}>
+            <li key={b.id} className="relative">
                 <Link
                   to={`/roughbook/${b.id}`}
-                  className="flex items-center justify-between gap-4 py-4 text-zinc-200 transition-colors hover:text-white"
+                  className="flex items-center justify-between gap-4 py-4 pr-10 text-zinc-200 transition-colors hover:text-white"
                 >
                   <span className="truncate">{b.title}</span>
                   <span className="shrink-0 text-sm text-zinc-500">{b.last_updated}</span>
                 </Link>
-              </li>
+                <button
+                  onClick={(e) =>
+                    setMenu({ book: b, rect: e.currentTarget.getBoundingClientRect() })
+                  }
+                  aria-label={`Options for ${b.title}`}
+                  className="absolute right-0 top-1/2 flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+                    <circle cx="5" cy="12" r="1.7" />
+                    <circle cx="12" cy="12" r="1.7" />
+                    <circle cx="19" cy="12" r="1.7" />
+                  </svg>
+                </button>
+            </li>
             ))}
           </ul>
         )}
@@ -101,6 +116,14 @@ export default function Roughbooks() {
 
       {creating && (
         <NewRoughbookDialog onCreate={create} onClose={() => setCreating(false)} />
+      )}
+
+      {menu && (
+        <RoughbookActions
+          book={menu.book}
+          rect={menu.rect}
+          onClose={() => setMenu(null)}
+        />
       )}
     </div>
   );

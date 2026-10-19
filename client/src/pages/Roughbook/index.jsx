@@ -5,6 +5,7 @@ import { CHAT_MAX_WIDTH } from "../../components/chat/config";
 import { useRoughbooks } from "../../components/roughbooks/roughbooks-context";
 import { createChat } from "../../lib/api/chats";
 import RoughbookHistory from "./RoughbookHistory";
+import RoughbookActions from "../../components/roughbooks/RoughbookActions";
 
 const ERROR_TEXT = {
   signed_out: "Your session has expired. Use Sign out, then sign in again.",
@@ -24,7 +25,9 @@ export default function Roughbook() {
   useEffect(() => {
     ensureLoaded();
   }, [ensureLoaded]);
-  const name = books.find((b) => b.id === rbId)?.title ?? "Roughbook";
+  const book = books.find((b) => b.id === rbId);
+  const name = book?.title ?? "Roughbook";
+  const [menu, setMenu] = useState(null); // null | { rect }
 
   // A message was sent: create a chat inside this roughbook (chat-create gets rb),
   // then open it. The chat page sends the message, as it does from /new.
@@ -50,7 +53,22 @@ export default function Roughbook() {
               Rough books
             </Link>
           </p>
-          <h1 className="mt-1 truncate text-2xl font-bold">{name}</h1>
+          <div className="mt-1 flex items-center gap-2">
+            <h1 className="min-w-0 flex-1 truncate text-2xl font-bold">{name}</h1>
+            {book && (
+              <button
+                onClick={(e) => setMenu({ rect: e.currentTarget.getBoundingClientRect() })}
+                aria-label="Roughbook options"
+                className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+                  <circle cx="5" cy="12" r="1.7" />
+                  <circle cx="12" cy="12" r="1.7" />
+                  <circle cx="19" cy="12" r="1.7" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
 
         {error && (
@@ -69,6 +87,14 @@ export default function Roughbook() {
         {/* key: switching roughbooks starts the history fresh */}
         <RoughbookHistory key={rbId} rbId={rbId} roughName={name} />
       </div>
+      {menu && book && (
+        <RoughbookActions
+          book={book}
+          rect={menu.rect}
+          onClose={() => setMenu(null)}
+          onDeleted={() => navigate("/roughbook")}
+        />
+      )}
     </div>
   );
 }

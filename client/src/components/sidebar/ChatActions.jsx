@@ -16,14 +16,15 @@ import {
 } from "../../lib/api/chatActions";
 
 // The menu of a chat (Pin, Rename, Delete, Roughbook) and the boxes it opens.
-// Used by the sidebar and by a roughbook's chat history.
-//   rect      where the row (or its 3 dots) is on screen
-//   rough     the name of the roughbook the chat is in ("" if none)
-//   onChanged called after any change, so the page can reload its own list
+// Used by the sidebar, the /chats page and a roughbook's chat history.
+//   rect, roughId, rough  where the row is, and (optionally) the roughbook the chat is in;
+//                         they default to what the chat itself says (chat.roughId, chat.rough)
+//   onChanged             called after any change, so a page can reload its own list
 export default function ChatActions({
   chat,
   rect,
   rough = "",
+  roughId = "",
   active = false,
   onClose,
   onNavigate,
@@ -36,7 +37,9 @@ export default function ChatActions({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
-  const isPinned = pinnedList.some((p) => p.id === chat.id);
+  const roughName = rough || chat.rough || "";
+  const currentRoughId = roughId || chat.roughId || "";
+  const isPinned = chat.pin === true || pinnedList.some((p) => p.id === chat.id);
 
   // reload every list that shows chats
   const reload = async () => {
@@ -114,7 +117,8 @@ export default function ChatActions({
     <ChatItemMenu
       rect={rect}
       pinned={isPinned}
-      rough={rough}
+      hasRough={Boolean(roughName || currentRoughId)}
+      roughId={currentRoughId}
       books={roughbooks.books}
       booksStatus={roughbooks.status}
       onClose={onClose}
@@ -127,7 +131,9 @@ export default function ChatActions({
       onNeedBooks={roughbooks.ensureLoaded}
       onPick={(book) => run(() => addChatToRough(chat.id, book))}
       onNewRough={() => setView("newrough")}
-      onRemoveRough={() => run(() => removeChatFromRough(chat.id, rough))}
+      onRemoveRough={() =>
+        run(() => removeChatFromRough(chat.id, { id: currentRoughId, name: roughName }))
+      }
     />
   );
 }

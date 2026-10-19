@@ -105,6 +105,8 @@ router.get("/", async (req, res) => {
           title: String(c.title ?? ""),
           date: String(c.date ?? ""),
           rough: typeof c.rough === "string" ? c.rough.slice(0, 100) : "",
+          roughId: typeof c.rough_id === "string" && RB_ID_RE.test(c.rough_id) ? c.rough_id : "",
+          pin: c.pin === true,
         })),
       hasMore: items.some((c) => c?.id === "show_more"),
     });

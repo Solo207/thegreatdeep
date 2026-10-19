@@ -15,8 +15,8 @@ const userOf = (req) => ({
   user_name: req.user.name,
 });
 
-// chats as the list webhooks answer them: [{ id, title, date, rough }]
-function chatsFrom(data, max) {
+// chats as the list webhooks answer them: [{ id, title, date, rough, rough_id, pin }]
+function chatsFrom(data, max, { pin = null } = {}) {
   const list = Array.isArray(data) ? data : Array.isArray(data?.chats) ? data.chats : [];
   return list
     .filter((c) => UUID_RE.test(c?.id))
@@ -25,6 +25,9 @@ function chatsFrom(data, max) {
       title: String(c.title ?? ""),
       date: String(c.date ?? ""),
       rough: typeof c.rough === "string" ? c.rough.slice(0, 100) : "",
+      // the roughbook is identified by its id; the name is only for display
+      roughId: typeof c.rough_id === "string" && RB_ID_RE.test(c.rough_id) ? c.rough_id : "",
+      pin: pin ?? c.pin === true,
     }))
     .slice(0, max);
 }
@@ -33,7 +36,7 @@ function chatsFrom(data, max) {
 router.get("/pinned", requireAuth, async (req, res) => {
   try {
     const data = await callN8n("pinned", userOf(req));
-    res.json({ chats: chatsFrom(data, 100) });
+    res.json({ chats: chatsFrom(data, 100, { pin: true }) });
   } catch (err) {
     fail(res, err);
   }
@@ -118,14 +121,21 @@ router.post("/:chatId/rough", requireAuth, async (req, res) => {
   }
 });
 
-// take a chat out of its roughbook
+// take a chat out of its roughbook (matched by id; the name is sent along too)
 router.post("/:chatId/rough/remove", requireAuth, async (req, res) => {
   const { chatId } = req.params;
   if (!UUID_RE.test(chatId)) return res.status(404).json({ error: "Not found" });
+  const roughId = cut(req.body?.roughId, 100);
   const roughName = cut(req.body?.roughName, 100);
-  if (!roughName) return res.status(400).json({ error: "Invalid request" });
+  const hasId = RB_ID_RE.test(roughId);
+  if (!hasId && !roughName) return res.status(400).json({ error: "Invalid request" });
   try {
-    await callN8n("rmrb", { chat_id: chatId, rough_name: roughName, ...userOf(req) });
+    await callN8n("rmrb", {
+      chat_id: chatId,
+      rough_id: hasId ? roughId : undefined,
+      rough_name: roughName || undefined,
+      ...userOf(req),
+    });
     res.json({ ok: true });
   } catch (err) {
     fail(res, err);

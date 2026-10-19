@@ -9,7 +9,7 @@ export default function useAllChats() {
   useEffect(() => {
     let ignore = false;
 
-    getAllChats() // asks n8n's all_chats: every chat
+    getAllChats() // asks n8n's all_chats: every chat, with rough, rough_id and pin
       .then((list) => {
         if (ignore) return;
         setChats(list);
@@ -30,5 +30,8 @@ export default function useAllChats() {
     setAttempt((n) => n + 1);
   };
 
-  return { status, chats, setChats, retry };
+  // after an action: reload quietly (the list stays on screen meanwhile)
+  const reload = () => setAttempt((n) => n + 1);
+
+  return { status, chats, setChats, retry, reload };
 }

@@ -38,9 +38,19 @@ export default function RoughbooksProvider({ children }) {
     setStatus("ready");
   }, []);
 
+  // a roughbook that was renamed changes at once
+  const update = useCallback((id, patch) => {
+    setBooks((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)));
+  }, []);
+
+  // a roughbook that was deleted leaves at once
+  const remove = useCallback((id) => {
+    setBooks((prev) => prev.filter((b) => b.id !== id));
+  }, []);
+
   const value = useMemo(
-    () => ({ books, status, refresh, ensureLoaded, add }),
-    [books, status, refresh, ensureLoaded, add]
+    () => ({ books, status, refresh, ensureLoaded, add, update, remove }),
+    [books, status, refresh, ensureLoaded, add, update, remove]
   );
 
   return <RoughbooksContext.Provider value={value}>{children}</RoughbooksContext.Provider>;

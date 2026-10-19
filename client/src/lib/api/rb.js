@@ -31,3 +31,17 @@ export const createRoughbook = (name) =>
 // the chats inside one roughbook: [{ id, title, date }]
 export const getRoughbookChats = (rbId) =>
   request(`/${encodeURIComponent(rbId)}/chats`).then((d) => d.chats);
+
+// rename a roughbook
+export const renameRoughbook = (rbId, name) =>
+  request(`/${encodeURIComponent(rbId)}/rename`, {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+
+// delete a roughbook; includeChats says whether its chats go too
+export const deleteRoughbook = (rbId, includeChats) =>
+  request(`/${encodeURIComponent(rbId)}/delete`, {
+    method: "POST",
+    body: JSON.stringify({ includeChats }),
+  });

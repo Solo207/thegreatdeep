@@ -7,6 +7,7 @@ import { useHistory } from "../../components/sidebar/history-context";
 import NotFound from "../NotFound";
 import ChatHeader from "./ChatHeader";
 import useChat from "./hooks/useChat";
+import { useRoughbooks } from "../../components/roughbooks/roughbooks-context";
 
 const ERROR_TEXT = {
   signed_out: "Your session has expired. Use Sign out (top right), then sign in again.",
@@ -18,7 +19,8 @@ const ERROR_TEXT = {
 function ChatScreen({ chatId }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { refresh, chats } = useHistory();
+  const { refresh, chats, pinned } = useHistory();
+  const roughbooks = useRoughbooks();
 
   // what /new (or a roughbook) handed over, read once when this screen is created
   const [firstMessage] = useState(() => location.state?.firstMessage ?? null);
@@ -46,10 +48,22 @@ function ChatScreen({ chatId }) {
     retrySend,
   } = useChat(chatId, firstMessage, refresh);
 
-  // title and roughbook name: from the chat list (freshest), else from the chat itself
-  const entry = chats.find((c) => c.id === chatId);
-  const title = entry?.title || meta?.title || "New chat";
-  const rough = entry?.rough || meta?.rough || roughFromNav || "";
+  // The chat can sit in the normal list or in the pinned list (pinned chats may leave the
+  // normal one), so both are checked. The roughbook name is also found by its id.
+  const listed = [...pinned, ...chats].filter((c) => c.id === chatId);
+  const listedRoughId = listed.find((c) => c.roughId)?.roughId || "";
+  const { ensureLoaded } = roughbooks;
+  useEffect(() => {
+    if (listedRoughId) ensureLoaded();
+  }, [listedRoughId, ensureLoaded]);
+
+  const title = listed.find((c) => c.title)?.title || meta?.title || "New chat";
+  const rough =
+    listed.find((c) => c.rough)?.rough ||
+    roughbooks.books.find((b) => b.id === listedRoughId)?.title ||
+    meta?.rough ||
+    roughFromNav ||
+    "";
 
   if (status === "loading") {
     return (

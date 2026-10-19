@@ -107,6 +107,7 @@ export default function RoughbookHistory({ rbId, roughName }) {
           chat={menu.chat}
           rect={menu.rect}
           rough={roughName}
+          roughId={rbId}
           onClose={() => setMenu(null)}
           onChanged={reload}
         />

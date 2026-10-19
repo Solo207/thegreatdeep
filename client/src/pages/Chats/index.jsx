@@ -6,17 +6,19 @@ import { deleteChats } from "../../lib/api/chatActions";
 import { warmUpKeyboard } from "../../lib/keyboard";
 import ConfirmDialog from "../PastQuestions/ConfirmDialog";
 import useAllChats from "./hooks/useAllChats";
+import ChatActions from "../../components/sidebar/ChatActions";
 
 const buttonStyle =
   "cursor-pointer rounded-lg border border-zinc-700 px-3.5 py-2 text-sm transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50";
 
 export default function Chats() {
-  const { status, chats, setChats, retry } = useAllChats();
+  const { status, chats, setChats, retry, reload } = useAllChats();
   const { refresh } = useHistory();
   const [selecting, setSelecting] = useState(false);
   const [picked, setPicked] = useState(() => new Set());
   const [confirming, setConfirming] = useState(false);
   const [deleteState, setDeleteState] = useState("idle"); // idle | busy | error
+  const [menu, setMenu] = useState(null); // null | { chat, rect }
 
   const toggle = (id) =>
     setPicked((prev) => {
@@ -124,7 +126,7 @@ export default function Chats() {
         {status === "ready" && chats.length > 0 && (
           <ul className="divide-y divide-zinc-800">
             {chats.map((c) => (
-              <li key={c.id}>
+              <li key={c.id} className="relative">
                 {selecting ? (
                   <button
                     onClick={() => toggle(c.id)}
@@ -156,13 +158,28 @@ export default function Chats() {
                     <span className="shrink-0 text-sm text-zinc-500">{c.date}</span>
                   </button>
                 ) : (
-                  <Link
-                    to={`/chat/${c.id}`}
-                    className="flex items-center justify-between gap-4 py-4 text-zinc-200 transition-colors hover:text-white"
-                  >
-                    <span className="truncate">{c.title}</span>
-                    <span className="shrink-0 text-sm text-zinc-500">{c.date}</span>
-                  </Link>
+                  <>
+                    <Link
+                      to={`/chat/${c.id}`}
+                      className="flex items-center justify-between gap-4 py-4 pr-10 text-zinc-200 transition-colors hover:text-white"
+                    >
+                      <span className="truncate">{c.title}</span>
+                      <span className="shrink-0 text-sm text-zinc-500">{c.date}</span>
+                    </Link>
+                    <button
+                      onClick={(e) =>
+                        setMenu({ chat: c, rect: e.currentTarget.getBoundingClientRect() })
+                      }
+                      aria-label={`Options for ${c.title}`}
+                      className="absolute right-0 top-1/2 flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+                        <circle cx="5" cy="12" r="1.7" />
+                        <circle cx="12" cy="12" r="1.7" />
+                        <circle cx="19" cy="12" r="1.7" />
+                      </svg>
+                    </button>
+                  </>
                 )}
               </li>
             ))}
@@ -178,6 +195,15 @@ export default function Chats() {
           error={deleteState === "error" ? "Couldn't delete them. Please try again." : null}
           onConfirm={confirmDelete}
           onCancel={() => setConfirming(false)}
+        />
+      )}
+      
+      {menu && (
+        <ChatActions
+          chat={menu.chat}
+          rect={menu.rect}
+          onClose={() => setMenu(null)}
+          onChanged={reload}
         />
       )}
     </div>

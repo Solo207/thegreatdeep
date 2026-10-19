@@ -3,11 +3,18 @@ import { createPortal } from "react-dom";
 import useVisualViewportHeight from "../../hooks/useVisualViewportHeight";
 import { RB_NAME_MAX, cleanRbName } from "./rules";
 
-// Asks for the roughbook's name. onCreate(name) should return a promise;
-// when it succeeds the page moves on, so this box just goes away.
-export default function NewRoughbookDialog({ onCreate, onClose }) {
+// Asks for a roughbook name: for a new one, or (with `initial`) to rename one.
+// onCreate(name) returns a promise; when it works, the caller closes this box.
+export default function NewRoughbookDialog({
+  onCreate,
+  onClose,
+  heading = "New roughbook",
+  hint = "What do you want to call it?",
+  initial = "",
+  confirmLabel = "Create",
+}) {
   const viewportHeight = useVisualViewportHeight(); // stays above the phone keyboard
-  const [name, setName] = useState("");
+  const [name, setName] = useState(() => cleanRbName(initial));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
@@ -19,15 +26,17 @@ export default function NewRoughbookDialog({ onCreate, onClose }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [busy, onClose]);
 
+  const value = name.trim();
+  const canSubmit = value.length > 0 && value !== initial.trim() && !busy;
+
   const submit = async () => {
-    const value = name.trim();
-    if (!value || busy) return;
+    if (!canSubmit) return;
     setBusy(true);
     setError(null);
     try {
       await onCreate(value);
     } catch {
-      setError("Couldn't create the roughbook. Please try again.");
+      setError("Couldn't save the name. Please try again.");
       setBusy(false);
     }
   };
@@ -41,18 +50,19 @@ export default function NewRoughbookDialog({ onCreate, onClose }) {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="New roughbook"
+        aria-label={heading}
         style={{ animation: "sheet-up 280ms ease-out" }}
         className="relative w-full max-w-sm rounded-2xl border border-zinc-700 bg-zinc-900 p-5 shadow-2xl"
       >
-        <h2 className="mb-1 text-lg font-bold">New roughbook</h2>
-        <p className="mb-4 text-sm text-zinc-400">What do you want to call it?</p>
+        <h2 className="mb-1 text-lg font-bold">{heading}</h2>
+        <p className="mb-4 text-sm text-zinc-400">{hint}</p>
 
         <input
           autoFocus
           value={name}
           maxLength={RB_NAME_MAX}
           disabled={busy}
+          onFocus={(e) => e.target.select()}
           onChange={(e) => setName(cleanRbName(e.target.value))}
           onKeyDown={(e) => {
             if (e.key === "Enter") submit();
@@ -79,13 +89,13 @@ export default function NewRoughbookDialog({ onCreate, onClose }) {
           </button>
           <button
             onClick={submit}
-            disabled={busy || !name.trim()}
+            disabled={!canSubmit}
             className="flex cursor-pointer items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-500"
           >
             {busy && (
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
             )}
-            Create
+            {confirmLabel}
           </button>
         </div>
       </div>

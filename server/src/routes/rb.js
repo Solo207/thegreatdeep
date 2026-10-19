@@ -16,6 +16,14 @@ const userOf = (req) => ({
   user_name: req.user.name,
 });
 
+// roughbook names: letters (any language), numbers and single spaces, at most 30 characters
+const cleanName = (raw) =>
+  cut(raw, 200)
+    .replace(/[^\p{L}\p{N} ]/gu, "")
+    .replace(/ {2,}/g, " ")
+    .trim()
+    .slice(0, 30);
+
 // 1. the roughbooks of this user: [{ id, title, last_updated }]
 router.get("/", async (req, res) => {
   try {
@@ -67,6 +75,36 @@ router.get("/:rbId/chats", async (req, res) => {
       .map((c) => ({ id: c.id, title: cut(c.title, 200), date: cut(c.date, 60) }))
       .slice(0, 500);
     res.json({ chats });
+  } catch (err) {
+    fail(res, err);
+  }
+});
+
+// 4. rename a roughbook
+router.post("/:rbId/rename", async (req, res) => {
+  const { rbId } = req.params;
+  if (!RB_ID_RE.test(rbId)) return res.status(404).json({ error: "Not found" });
+  const name = cleanName(req.body?.name);
+  if (!name) return res.status(400).json({ error: "Missing name" });
+  try {
+    await callN8n("rbedit", { rb_id: rbId, rb_name: name, ...userOf(req) });
+    res.json({ ok: true });
+  } catch (err) {
+    fail(res, err);
+  }
+});
+
+// 5. delete a roughbook, with or without the chats in it
+router.post("/:rbId/delete", async (req, res) => {
+  const { rbId } = req.params;
+  if (!RB_ID_RE.test(rbId)) return res.status(404).json({ error: "Not found" });
+  try {
+    await callN8n("rbdel", {
+      rb_id: rbId,
+      include_chats: req.body?.includeChats === true,
+      ...userOf(req),
+    });
+    res.json({ ok: true });
   } catch (err) {
     fail(res, err);
   }
