@@ -3,10 +3,10 @@ import { useRef } from "react";
 const HOLD_MS = 500; // how long a finger must stay down
 const MOVE_TOLERANCE = 10; // px the finger may drift (more than that is a scroll)
 
-// Long press for touch screens. Spread the result on the element:
-//   <div {...useLongPress(() => ...)}>
+// Long press for touch screens, and right click for a mouse. Spread the result on the element:
+//   <div {...useLongPress(onLongPress, onRightClick)}>
 // A tap right after a long press is swallowed, so the link doesn't open too.
-export default function useLongPress(onLongPress) {
+export default function useLongPress(onLongPress, onRightClick) {
   const timer = useRef(null);
   const start = useRef(null);
   const fired = useRef(false);
@@ -37,9 +37,17 @@ export default function useLongPress(onLongPress) {
     onPointerUp: cancel,
     onPointerCancel: cancel, // the browser started scrolling
     onPointerLeave: cancel,
-    // no browser menu on a long press
     onContextMenu: (e) => {
-      if (fired.current || timer.current) e.preventDefault();
+      // a long press on a phone also sends this: the timer above handles it
+      if (fired.current || timer.current) {
+        e.preventDefault();
+        return;
+      }
+      // a right click with a mouse: open the menu at the mouse
+      if (onRightClick) {
+        e.preventDefault();
+        onRightClick(e);
+      }
     },
     onClickCapture: (e) => {
       if (fired.current) {

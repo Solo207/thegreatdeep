@@ -2,15 +2,15 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import BotMessage from "./messages/BotMessage";
 import MessageBoundary from "./messages/MessageBoundary";
 import WaitingIndicator from "./WaitingIndicator";
-import { bodyOf } from "./messages/utils";
-import { CHAT_MAX_WIDTH } from "./config";
 import LinkedText from "./LinkedText";
 import MessageMeta from "./messages/MessageMeta";
+import { bodyOf, messageToText } from "./messages/utils";
+import { CHAT_MAX_WIDTH } from "./config";
 
-const NEAR_BOTTOM_PX = 80;  // closer than this to the end counts as "at the end"
+const NEAR_BOTTOM_PX = 80; // closer than this to the end counts as "at the end"
 const SHOW_BUTTON_PX = 300; // further than this from the end shows the arrow (about 3 messages)
-const ANCHOR_OFFSET = 16;   // gap above your message when it is moved to the top
-const PAD_BOTTOM = 24;      // the list's bottom padding (py-6)
+const ANCHOR_OFFSET = 16; // gap above your message when it is moved to the top
+const PAD_BOTTOM = 24; // the list's bottom padding (py-6)
 
 // where an element starts inside the scrolling area
 const topOf = (el, scroller) =>
@@ -25,6 +25,7 @@ export default function MessageList({ messages, isLoading, words = [], onSelect 
   const firstRenderRef = useRef(true);
   const prevCountRef = useRef(0);
   const unseenRef = useRef(false);
+  const anchoringRef = useRef(false); // true while your message is held at the top for a reply
   const [showButton, setShowButton] = useState(false);
 
   // how far the end of the conversation is below the visible area
@@ -35,13 +36,14 @@ export default function MessageList({ messages, isLoading, words = [], onSelect 
     return Math.max(0, topOf(e, s) - (s.scrollTop + s.clientHeight));
   };
 
-  // Blank room under the newest reply, just enough that your latest message can sit
-  // at the top of the screen. It shrinks as the reply grows, so nothing jumps.
+  // Blank room under the newest reply, just enough that your latest message can sit at the
+  // top of the screen. It exists only while the reply is coming in, and shrinks as it grows.
   const updateSpacer = () => {
     const s = scrollerRef.current;
     const spacer = spacerRef.current;
     const end = endRef.current;
     if (!s || !spacer || !end) return;
+    if (!anchoringRef.current) return; // no extra room unless a reply is being waited for
     const userEl = lastUserRef.current;
     if (!userEl) {
       spacer.style.height = "0px";
@@ -50,6 +52,25 @@ export default function MessageList({ messages, isLoading, words = [], onSelect 
     const anchorTop = topOf(userEl, s) - ANCHOR_OFFSET;
     const needed = anchorTop + s.clientHeight - topOf(end, s) - PAD_BOTTOM;
     spacer.style.height = `${Math.max(0, needed)}px`;
+  };
+
+  // The reply is finished: let the page come down so the last message sits at the bottom,
+  // then remove the blank room, so nothing can be scrolled past the last message.
+  const releaseAnchor = () => {
+    const s = scrollerRef.current;
+    const spacer = spacerRef.current;
+    const end = endRef.current;
+    anchoringRef.current = false;
+    if (!s || !spacer || !end) return;
+    const target = Math.max(0, topOf(end, s) + PAD_BOTTOM - s.clientHeight);
+    if (s.scrollTop > target + 2) {
+      s.scrollTo({ top: target, behavior: "smooth" });
+      setTimeout(() => {
+        spacer.style.height = "0px";
+      }, 350);
+    } else {
+      spacer.style.height = "0px";
+    }
   };
 
   const scrollToEnd = (behavior = "smooth") => {
@@ -81,17 +102,22 @@ export default function MessageList({ messages, isLoading, words = [], onSelect 
   useEffect(() => {
     const s = scrollerRef.current;
     if (!s) return;
-    updateSpacer();
 
     const grew = messages.length > prevCountRef.current;
     prevCountRef.current = messages.length;
     const last = messages[messages.length - 1];
 
+    // you just sent something: hold it at the top while the reply comes in
+    if (!firstRenderRef.current && grew && last?.role === "user") {
+      anchoringRef.current = true;
+    }
+    updateSpacer();
+
     if (firstRenderRef.current) {
       firstRenderRef.current = false;
       scrollToEnd("auto"); // opening a chat: show the end of the conversation
     } else if (grew && last?.role === "user") {
-      // you just sent something: move it to the top so the reply flows down below it
+      // move your message to the top so the reply flows down below it
       if (lastUserRef.current) {
         s.scrollTo({
           top: Math.max(0, topOf(lastUserRef.current, s) - ANCHOR_OFFSET),
@@ -110,6 +136,12 @@ export default function MessageList({ messages, isLoading, words = [], onSelect 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages, isLoading]);
 
+  // the reply is finished (the waiting stopped): bring the page down
+  useEffect(() => {
+    if (!isLoading && anchoringRef.current) releaseAnchor();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading]);
+
   // the waiting line goes right under the user's latest message,
   // so the bot's messages appear below it as they arrive
   let lastUserIndex = -1;
@@ -120,21 +152,22 @@ export default function MessageList({ messages, isLoading, words = [], onSelect 
     }
   }
   const indicatorAfter = lastUserIndex === -1 ? messages.length - 1 : lastUserIndex;
-    // the text the user sent right after message i (if the next message is theirs)
-  const nextText = (i) =>
-    messages[i + 1]?.role === "user" ? bodyOf(messages[i + 1]) : null;
 
-    // The last message of each run of bot messages (the one before your next message,
-  // or the newest in the chat) carries the copy icon and time. Copy takes the whole run.
+  // The last message of each run of bot messages (the one before your next message, or the
+  // newest in the chat) carries the copy icon and time. Copy takes ALL the text of the run.
   const isRunEnd = (i) => messages[i + 1] === undefined || messages[i + 1].role === "user";
   const runText = (i) => {
     const parts = [];
     for (let j = i; j >= 0 && messages[j].role !== "user"; j--) {
-      const t = bodyOf(messages[j]);
+      const t = messageToText(messages[j]);
       if (t) parts.unshift(t);
     }
     return parts.join("\n\n");
   };
+
+  // what the user sent right after message i (if the next message is theirs)
+  const nextText = (i) =>
+    messages[i + 1]?.role === "user" ? bodyOf(messages[i + 1]) : null;
 
   return (
     <div className="relative min-h-0 flex-1">
@@ -161,11 +194,11 @@ export default function MessageList({ messages, isLoading, words = [], onSelect 
                         linkClass="underline decoration-white/60 underline-offset-2 hover:decoration-white"
                       />
                     </div>
-                                        <MessageMeta text={bodyOf(m)} createdAt={m.createdAt} align="right" />
+                    <MessageMeta text={bodyOf(m)} createdAt={m.createdAt} align="right" />
                   </div>
                 </div>
               ) : (
-                  <div className="min-w-0 px-1 text-zinc-100">
+                <div className="min-w-0 px-1 text-zinc-100">
                   <MessageBoundary>
                     <BotMessage
                       message={m}

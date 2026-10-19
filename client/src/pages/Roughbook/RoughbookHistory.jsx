@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getRoughbookChats } from "../../lib/api/rb";
 import ChatActions from "../../components/sidebar/ChatActions";
+import MenuRow from "../../components/MenuRow";
 
 // The chats inside one roughbook: title on the left, date on the right, and a
 // 3-dots menu at the edge (Pin, Rename, Change roughbook, Delete).
@@ -70,33 +71,19 @@ export default function RoughbookHistory({ rbId, roughName }) {
       {status === "ready" && chats.length > 0 && (
         <ul className="divide-y divide-zinc-800">
           {chats.map((c) => (
-            <li key={c.id} className="relative">
-              <Link
-                to={`/chat/${c.id}`}
-                className="flex items-center justify-between gap-4 py-4 pr-10 text-zinc-200 transition-colors hover:text-white"
+            <li key={c.id}>
+              <MenuRow
+                onOpen={(rect) => setMenu({ chat: c, rect })}
+                label={`Options for ${c.title}`}
               >
-                <span className="truncate">{c.title}</span>
-                <span className="shrink-0 text-sm text-zinc-500">{c.date}</span>
-              </Link>
-
-              <button
-                onClick={(e) =>
-                  setMenu({ chat: c, rect: e.currentTarget.getBoundingClientRect() })
-                }
-                aria-label={`Options for ${c.title}`}
-                className="absolute right-0 top-1/2 flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  className="h-4 w-4"
+                <Link
+                  to={`/chat/${c.id}`}
+                  className="flex items-center justify-between gap-4 py-4 text-zinc-200 transition-colors hover:text-white [@media(hover:hover)]:pr-10"
                 >
-                  <circle cx="5" cy="12" r="1.7" />
-                  <circle cx="12" cy="12" r="1.7" />
-                  <circle cx="19" cy="12" r="1.7" />
-                </svg>
-              </button>
+                  <span className="truncate">{c.title}</span>
+                  <span className="shrink-0 text-sm text-zinc-500">{c.date}</span>
+                </Link>
+              </MenuRow>
             </li>
           ))}
         </ul>

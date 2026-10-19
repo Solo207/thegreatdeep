@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import useLongPress from "./useLongPress";
 import ChatActions from "./ChatActions";
+import { cursorRect } from "../../lib/rect";
 
 // One chat in the sidebar: a link, a 3-dots button on hover (computers)
 // and a menu on long press (phones).
@@ -10,9 +11,12 @@ export default function ChatListItem({ chat, active = false, onNavigate }) {
   const [menu, setMenu] = useState(null); // null | { rect }
 
   const openMenu = (el) => setMenu({ rect: el.getBoundingClientRect() });
-  const longPress = useLongPress(() => {
-    if (rowRef.current) openMenu(rowRef.current);
-  });
+  const longPress = useLongPress(
+    () => {
+      if (rowRef.current) openMenu(rowRef.current);
+    },
+    (e) => setMenu({ rect: cursorRect(e, rowRef.current) })
+  );
 
   return (
     <div

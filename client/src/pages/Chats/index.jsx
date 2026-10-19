@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { CHAT_MAX_WIDTH } from "../../components/chat/config";
+import MenuRow from "../../components/MenuRow";
+import ChatActions from "../../components/sidebar/ChatActions";
 import { useHistory } from "../../components/sidebar/history-context";
 import { deleteChats } from "../../lib/api/chatActions";
 import { warmUpKeyboard } from "../../lib/keyboard";
 import ConfirmDialog from "../PastQuestions/ConfirmDialog";
 import useAllChats from "./hooks/useAllChats";
-import ChatActions from "../../components/sidebar/ChatActions";
 
 const buttonStyle =
   "cursor-pointer rounded-lg border border-zinc-700 px-3.5 py-2 text-sm transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50";
@@ -53,32 +54,17 @@ export default function Chats() {
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className={`mx-auto w-full ${CHAT_MAX_WIDTH} px-4 pb-10`}>
+      <div className={`mx-auto w-full ${CHAT_MAX_WIDTH} px-4 pb-6`}>
         <div className="flex items-center justify-between gap-3 py-6">
-          <h1 className="text-2xl font-bold">
+          <h1 className="min-w-0 truncate text-2xl font-bold">
             {selecting ? `${picked.size} selected` : "Chats"}
           </h1>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             {selecting ? (
-              <>
-                <button onClick={selectAll} className={buttonStyle}>
-                  {allPicked ? "Clear" : "Select all"}
-                </button>
-                <button onClick={stopSelecting} className={buttonStyle}>
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    setDeleteState("idle");
-                    setConfirming(true);
-                  }}
-                  disabled={picked.size === 0}
-                  className="cursor-pointer rounded-lg bg-red-500 px-3.5 py-2 text-sm font-bold text-white transition-colors hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Delete
-                </button>
-              </>
+              <button onClick={stopSelecting} className={buttonStyle}>
+                Cancel
+              </button>
             ) : (
               <>
                 <button
@@ -126,14 +112,16 @@ export default function Chats() {
         {status === "ready" && chats.length > 0 && (
           <ul className="divide-y divide-zinc-800">
             {chats.map((c) => (
-              <li key={c.id} className="relative">
+              <li key={c.id}>
                 {selecting ? (
                   <button
                     onClick={() => toggle(c.id)}
-                    className="flex w-full cursor-pointer items-center gap-3 py-4 text-left text-zinc-200 transition-colors hover:text-white"
+                    className={`flex w-full cursor-pointer items-center gap-4 px-1 py-4 text-left transition-colors ${
+                      picked.has(c.id) ? "bg-indigo-500/10" : "hover:bg-zinc-800/50"
+                    }`}
                   >
                     <span
-                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border ${
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border ${
                         picked.has(c.id)
                           ? "border-indigo-400 bg-indigo-500"
                           : "border-zinc-600"
@@ -148,44 +136,57 @@ export default function Chats() {
                           strokeWidth="3"
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          className="h-3.5 w-3.5"
+                          className="h-4 w-4"
                         >
                           <path d="M5 12l5 5L20 7" />
                         </svg>
                       )}
                     </span>
-                    <span className="min-w-0 flex-1 truncate">{c.title}</span>
-                    <span className="shrink-0 text-sm text-zinc-500">{c.date}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-zinc-200">{c.title}</span>
+                      <span className="mt-0.5 block text-xs text-zinc-500">{c.date}</span>
+                    </span>
                   </button>
                 ) : (
-                  <>
+                  <MenuRow
+                    onOpen={(rect) => setMenu({ chat: c, rect })}
+                    label={`Options for ${c.title}`}
+                  >
                     <Link
                       to={`/chat/${c.id}`}
-                      className="flex items-center justify-between gap-4 py-4 pr-10 text-zinc-200 transition-colors hover:text-white"
+                      className="flex items-center justify-between gap-4 py-4 text-zinc-200 transition-colors hover:text-white [@media(hover:hover)]:pr-10"
                     >
                       <span className="truncate">{c.title}</span>
                       <span className="shrink-0 text-sm text-zinc-500">{c.date}</span>
                     </Link>
-                    <button
-                      onClick={(e) =>
-                        setMenu({ chat: c, rect: e.currentTarget.getBoundingClientRect() })
-                      }
-                      aria-label={`Options for ${c.title}`}
-                      className="absolute right-0 top-1/2 flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
-                        <circle cx="5" cy="12" r="1.7" />
-                        <circle cx="12" cy="12" r="1.7" />
-                        <circle cx="19" cy="12" r="1.7" />
-                      </svg>
-                    </button>
-                  </>
+                  </MenuRow>
                 )}
               </li>
             ))}
           </ul>
         )}
       </div>
+
+      {/* select mode: the actions sit in a bar pinned to the bottom, with big buttons */}
+      {selecting && (
+        <div className="sticky bottom-0 border-t border-zinc-800 bg-zinc-900/95 px-4 py-3 backdrop-blur">
+          <div className={`mx-auto flex w-full ${CHAT_MAX_WIDTH} items-center gap-3`}>
+            <button onClick={selectAll} className={`${buttonStyle} flex-1 py-3`}>
+              {allPicked ? "Clear all" : "Select all"}
+            </button>
+            <button
+              onClick={() => {
+                setDeleteState("idle");
+                setConfirming(true);
+              }}
+              disabled={picked.size === 0}
+              className="flex-1 cursor-pointer rounded-lg bg-red-500 py-3 text-sm font-bold text-white transition-colors hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Delete{picked.size > 0 ? ` (${picked.size})` : ""}
+            </button>
+          </div>
+        </div>
+      )}
 
       {confirming && (
         <ConfirmDialog
@@ -197,7 +198,7 @@ export default function Chats() {
           onCancel={() => setConfirming(false)}
         />
       )}
-      
+
       {menu && (
         <ChatActions
           chat={menu.chat}

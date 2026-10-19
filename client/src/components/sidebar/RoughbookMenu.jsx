@@ -3,6 +3,7 @@ import { Link, useMatch, useNavigate } from "react-router-dom";
 import { useRoughbooks } from "../roughbooks/roughbooks-context";
 import RoughbookActions from "../roughbooks/RoughbookActions";
 import useLongPress from "./useLongPress";
+import { cursorRect } from "../../lib/rect";
 
 // One roughbook in the dropdown: a link, a 3-dots button on hover (computers)
 // and a menu on long press (phones).
@@ -12,9 +13,12 @@ function BookRow({ book, active, onNavigate }) {
   const [menu, setMenu] = useState(null); // null | { rect }
 
   const openMenu = (el) => setMenu({ rect: el.getBoundingClientRect() });
-  const longPress = useLongPress(() => {
-    if (rowRef.current) openMenu(rowRef.current);
-  });
+  const longPress = useLongPress(
+    () => {
+      if (rowRef.current) openMenu(rowRef.current);
+    },
+    (e) => setMenu({ rect: cursorRect(e, rowRef.current) })
+  );
 
   return (
     <div
