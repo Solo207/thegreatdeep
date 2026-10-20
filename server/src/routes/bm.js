@@ -1,6 +1,6 @@
 import { Router } from "express";
 import requireAuth from "../middleware/requireAuth.js";
-import { callN8n } from "../lib/n8n.js";
+import { callN8n, actionN8n } from "../lib/n8n.js";
 import { cut, fail, linkFrom, groupsFrom } from "./pq.js";
 
 const router = Router();
@@ -43,7 +43,7 @@ router.post("/delete", async (req, res) => {
   const title = cut(req.body?.title, 200);
   if (!code || !title) return res.status(400).json({ error: "Invalid request" });
   try {
-    await callN8n("bm_del", {
+    await actionN8n("bm_del", {
       code,
       user_id: req.user.id,
       email: req.user.email,

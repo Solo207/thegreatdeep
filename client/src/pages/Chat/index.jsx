@@ -8,6 +8,7 @@ import NotFound from "../NotFound";
 import ChatHeader from "./ChatHeader";
 import useChat from "./hooks/useChat";
 import { useRoughbooks } from "../../components/roughbooks/roughbooks-context";
+import usePageTitle from "../../hooks/usePageTitle";
 
 const ERROR_TEXT = {
   signed_out: "Your session has expired. Use Sign out (top right), then sign in again.",
@@ -64,6 +65,8 @@ function ChatScreen({ chatId }) {
     meta?.rough ||
     roughFromNav ||
     "";
+  
+    usePageTitle(title);
 
   // what the header's 3-dots menu works on
   const chatForMenu = {

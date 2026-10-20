@@ -20,19 +20,19 @@ export default function RoughbookActions({ book, rect, onClose, onDeleted }) {
   const [view, setView] = useState("menu"); // menu | rename | delete
 
   const saveName = async (name) => {
-    await renameRoughbook(book.id, name);
+    await renameRoughbook(book.id, name); // if this fails, the box shows the error
     roughbooks.update(book.id, { title: name });
-    await refresh(); // the chats' "roughbook / title" labels
     onClose();
     toast("Roughbook renamed");
+    refresh().catch(() => {}); // the chats' "roughbook / title" labels
   };
 
   const confirmDelete = async (includeChats) => {
-    await deleteRoughbook(book.id, includeChats);
+    await deleteRoughbook(book.id, includeChats); // if this fails, the box shows the error
     roughbooks.remove(book.id);
-    await refresh(); // its chats are gone, or have lost their roughbook
     onClose();
     toast(includeChats ? "Roughbook and its chats deleted" : "Roughbook deleted");
+    refresh().catch(() => {}); // its chats are gone, or have lost their roughbook
     onDeleted?.();
   };
 

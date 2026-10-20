@@ -1,6 +1,6 @@
 import { Router } from "express";
 import requireAuth from "../middleware/requireAuth.js";
-import { callN8n } from "../lib/n8n.js";
+import { callN8n, actionN8n } from "../lib/n8n.js";
 import { RB_ID_RE } from "../lib/ids.js";
 import { cut, fail } from "./pq.js";
 
@@ -62,7 +62,7 @@ router.post("/delete", requireAuth, async (req, res) => {
     return res.status(400).json({ error: "Invalid request" });
   }
   try {
-    await callN8n("delete", { chat_ids: [...new Set(ids)], ...userOf(req) });
+    await actionN8n("delete", { chat_ids: [...new Set(ids)], ...userOf(req) });
     res.json({ ok: true });
   } catch (err) {
     fail(res, err);
@@ -74,7 +74,7 @@ router.post("/:chatId/pin", requireAuth, async (req, res) => {
   const { chatId } = req.params;
   if (!UUID_RE.test(chatId)) return res.status(404).json({ error: "Not found" });
   try {
-    await callN8n("pin", {
+    await actionN8n("pin", {
       chat_id: chatId,
       do_what: req.body?.pin === false ? "unpin" : "pin",
       ...userOf(req),
@@ -92,7 +92,7 @@ router.post("/:chatId/rename", requireAuth, async (req, res) => {
   const name = cut(req.body?.name, 100).replace(/[\u0000-\u001f\u007f]/g, "").trim();
   if (!name) return res.status(400).json({ error: "Missing name" });
   try {
-    await callN8n("rename", { chat_id: chatId, name, ...userOf(req) });
+    await actionN8n("rename", { chat_id: chatId, name, ...userOf(req) });
     res.json({ ok: true });
   } catch (err) {
     fail(res, err);
@@ -109,7 +109,7 @@ router.post("/:chatId/rough", requireAuth, async (req, res) => {
     return res.status(400).json({ error: "Invalid request" });
   }
   try {
-    await callN8n("addchatrb", {
+    await actionN8n("addchatrb", {
       chat_id: chatId,
       rough_id: roughId,
       rough_name: roughName,
@@ -130,7 +130,7 @@ router.post("/:chatId/rough/remove", requireAuth, async (req, res) => {
   const hasId = RB_ID_RE.test(roughId);
   if (!hasId && !roughName) return res.status(400).json({ error: "Invalid request" });
   try {
-    await callN8n("rmrb", {
+    await actionN8n("rmrb", {
       chat_id: chatId,
       rough_id: hasId ? roughId : undefined,
       rough_name: roughName || undefined,

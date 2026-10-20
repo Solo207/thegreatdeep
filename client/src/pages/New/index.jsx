@@ -5,6 +5,7 @@ import { createChat } from "../../lib/api/chats";
 import useMediaQuery from "../../hooks/useMediaQuery";
 import ChatInput from "../../components/chat/ChatInput";
 import { CHAT_MAX_WIDTH } from "../../components/chat/config";
+import usePageTitle from "../../hooks/usePageTitle";
 
 const ERROR_TEXT = {
   signed_out: "Your session has expired. Use Sign out (top right), then sign in again.",
@@ -20,6 +21,7 @@ export default function New() {
   const [error, setError] = useState(null); // { kind, text }
   const [typing, setTyping] = useState(false);
   const isTouch = useMediaQuery("(pointer: coarse)");
+  usePageTitle("New chat");
 
   const firstName = data?.user.name?.split(" ")[0];
 

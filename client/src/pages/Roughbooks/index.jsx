@@ -7,6 +7,7 @@ import NewRoughbookDialog from "./NewRoughbookDialog";
 import RoughbookActions from "../../components/roughbooks/RoughbookActions";
 import MenuRow from "../../components/MenuRow";
 import { useToast } from "../../components/toast/toast-context";
+import usePageTitle from "../../hooks/usePageTitle";
 
 function NewButton({ onClick, className = "" }) {
   return (
@@ -37,6 +38,7 @@ export default function Roughbooks() {
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
   const [menu, setMenu] = useState(null); // null | { book, rect }
+  usePageTitle("Rough books");
 
   // the page opens: ask n8n (rb) for the roughbooks
   useEffect(() => {

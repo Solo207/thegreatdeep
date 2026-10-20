@@ -8,11 +8,13 @@ import {
   getBookmarks,
   startBookmark,
 } from "../../lib/api/bm";
+import usePageTitle from "../../hooks/usePageTitle";
 
 export default function Bookmarks() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const subject = searchParams.get("subject"); // the slide-in page is open while this is set
+  usePageTitle(subject || "Bookmarks");
   const pushed = useRef(false);
   const [closing, setClosing] = useState(false);
 

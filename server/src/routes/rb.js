@@ -1,6 +1,6 @@
 import { Router } from "express";
 import requireAuth from "../middleware/requireAuth.js";
-import { callN8n } from "../lib/n8n.js";
+import { callN8n, actionN8n } from "../lib/n8n.js";
 import { RB_ID_RE } from "../lib/ids.js";
 import { cut, fail } from "./pq.js";
 
@@ -87,7 +87,7 @@ router.post("/:rbId/rename", async (req, res) => {
   const name = cleanName(req.body?.name);
   if (!name) return res.status(400).json({ error: "Missing name" });
   try {
-    await callN8n("rbedit", { rb_id: rbId, rb_name: name, ...userOf(req) });
+    await actionN8n("rbedit", { rb_id: rbId, rb_name: name, ...userOf(req) });
     res.json({ ok: true });
   } catch (err) {
     fail(res, err);
@@ -99,7 +99,7 @@ router.post("/:rbId/delete", async (req, res) => {
   const { rbId } = req.params;
   if (!RB_ID_RE.test(rbId)) return res.status(404).json({ error: "Not found" });
   try {
-    await callN8n("rbdel", {
+    await actionN8n("rbdel", {
       rb_id: rbId,
       include_chats: req.body?.includeChats === true,
       ...userOf(req),

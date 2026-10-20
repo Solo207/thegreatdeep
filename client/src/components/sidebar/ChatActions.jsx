@@ -48,23 +48,27 @@ export default function ChatActions({
   const isCurrent = (b) =>
     currentRoughId ? b.id === currentRoughId : Boolean(roughName) && b.title === roughName;
 
-  // reload every list that shows chats
-  const reload = async () => {
-    await refresh();
-    await onChanged?.();
+  // reload every list that shows chats, in the background.
+  // It can never turn a finished action into an error message.
+  const reloadQuietly = () => {
+    (async () => {
+      await refresh();
+      await onChanged?.();
+    })().catch((err) => console.error("Reloading the lists failed:", err));
   };
 
-  // the quick actions: close the menu, do it, reload, tell the user
+  // the quick actions: only the action itself can report an error
   const run = async (action, doneText) => {
     onClose();
     try {
       await action();
-      await reload();
-      toast(doneText);
     } catch (err) {
       console.error("Chat action failed:", err);
       toast("Something went wrong. Please try again.", "error");
+      return;
     }
+    toast(doneText);
+    reloadQuietly();
   };
 
   const pick = (book) => {
@@ -80,10 +84,10 @@ export default function ChatActions({
   };
 
   const saveName = async (name) => {
-    await renameChat(chat.id, name);
-    await reload();
+    await renameChat(chat.id, name); // if this fails, the box shows the error
     onClose();
     toast("Chat renamed");
+    reloadQuietly();
   };
 
   const confirmDelete = async () => {
@@ -91,16 +95,18 @@ export default function ChatActions({
     setError(null);
     try {
       await deleteChats([chat.id]);
-      await reload();
-      onClose();
-      toast("Chat deleted");
-      if (active) {
-        navigate("/new");
-        onNavigate?.();
-      }
     } catch {
       setError("Couldn't delete it. Please try again.");
       setBusy(false);
+      return;
+    }
+    // it worked: nothing below can report an error
+    onClose();
+    toast("Chat deleted");
+    reloadQuietly();
+    if (active) {
+      navigate("/new");
+      onNavigate?.();
     }
   };
 
@@ -109,9 +115,9 @@ export default function ChatActions({
     const id = await createRoughbook(name);
     roughbooks.add({ id, title: name, last_updated: "just now" });
     await addChatToRough(chat.id, { id, title: name });
-    await reload();
     onClose();
     toast(`Added to ${name}`);
+    reloadQuietly();
     navigate(`/roughbook/${id}`);
     onNavigate?.();
   };

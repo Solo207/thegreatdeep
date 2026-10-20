@@ -57,3 +57,27 @@ export async function getN8nFile(name, params, signal) {
   }
   return res;
 }
+
+// For actions where only "did it work?" matters (delete, pin, rename...):
+// any 2xx answer counts as success, whatever the body looks like.
+// If n8n answers with an error, it is logged here, so you can see why.
+export async function actionN8n(name, payload) {
+  const prefix = process.env.N8N_WEBHOOK_PREFIX || "webhook";
+  const res = await fetch(`${process.env.N8N_BASE_URL}/${prefix}/${name}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Webhook-Secret": process.env.N8N_WEBHOOK_SECRET,
+    },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(90_000),
+  });
+
+  const body = await res.text().catch(() => "");
+  if (!res.ok) {
+    console.error(`[n8n ${name}] answered ${res.status}: ${body.slice(0, 200)}`);
+    const err = new Error(`n8n responded ${res.status}`);
+    err.status = res.status === 404 ? 404 : 502;
+    throw err;
+  }
+}

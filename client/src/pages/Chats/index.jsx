@@ -9,6 +9,7 @@ import { warmUpKeyboard } from "../../lib/keyboard";
 import ConfirmDialog from "../PastQuestions/ConfirmDialog";
 import useAllChats from "./hooks/useAllChats";
 import { useToast } from "../../components/toast/toast-context";
+import usePageTitle from "../../hooks/usePageTitle";
 
 const buttonStyle =
   "cursor-pointer rounded-lg border border-zinc-700 px-3.5 py-2 text-sm transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50";
@@ -22,6 +23,7 @@ export default function Chats() {
   const [confirming, setConfirming] = useState(false);
   const [deleteState, setDeleteState] = useState("idle"); // idle | busy | error
   const [menu, setMenu] = useState(null); // null | { chat, rect }
+  usePageTitle("Chats");
 
   const toggle = (id) =>
     setPicked((prev) => {
@@ -39,20 +41,23 @@ export default function Chats() {
     setPicked(new Set());
   };
 
-  // all the picked chats go to n8n together, as one array
+    // all the picked chats go to n8n together, as one array
   const confirmDelete = async () => {
     setDeleteState("busy");
+    const ids = [...picked];
     try {
-      await deleteChats([...picked]);
-      toast(`${picked.size} ${picked.size === 1 ? "chat" : "chats"} deleted`);
-      setChats((prev) => prev.filter((c) => !picked.has(c.id)));
-      setConfirming(false);
-      setDeleteState("idle");
-      stopSelecting();
-      refresh(); // the sidebar's list too
+      await deleteChats(ids);
     } catch {
       setDeleteState("error");
+      return;
     }
+    // it worked: nothing below can report an error
+    toast(`${ids.length} ${ids.length === 1 ? "chat" : "chats"} deleted`);
+    setChats((prev) => prev.filter((c) => !ids.includes(c.id)));
+    setConfirming(false);
+    setDeleteState("idle");
+    stopSelecting();
+    refresh().catch(() => {}); // the sidebar's list too
   };
 
   return (

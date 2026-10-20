@@ -4,11 +4,13 @@ import { CHAT_MAX_WIDTH } from "../../components/chat/config";
 import { addPastQuestion, getSubjects } from "../../lib/api/pq";
 import PapersPanel from "./PapersPanel";
 import LinkDialog from "./LinkDialog";
+import usePageTitle from "../../hooks/usePageTitle";
 
 export default function PastQuestions() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const subject = searchParams.get("subject"); // the slide-in page is open while this is set
+  usePageTitle(subject || "Past questions");
   const pushed = useRef(false);
   const [closing, setClosing] = useState(false);
 

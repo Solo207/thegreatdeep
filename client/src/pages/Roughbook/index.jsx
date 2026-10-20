@@ -6,6 +6,7 @@ import { useRoughbooks } from "../../components/roughbooks/roughbooks-context";
 import { createChat } from "../../lib/api/chats";
 import RoughbookHistory from "./RoughbookHistory";
 import RoughbookActions from "../../components/roughbooks/RoughbookActions";
+import usePageTitle from "../../hooks/usePageTitle";
 
 const ERROR_TEXT = {
   signed_out: "Your session has expired. Use Sign out, then sign in again.",
@@ -27,6 +28,7 @@ export default function Roughbook() {
   }, [ensureLoaded]);
   const book = books.find((b) => b.id === rbId);
   const name = book?.title ?? "Roughbook";
+  usePageTitle(name);
   const [menu, setMenu] = useState(null); // null | { rect }
 
   // A message was sent: create a chat inside this roughbook (chat-create gets rb),
