@@ -2,19 +2,13 @@ import { Router } from "express";
 import requireAuth from "../middleware/requireAuth.js";
 import { callN8n, actionN8n } from "../lib/n8n.js";
 import { RB_ID_RE } from "../lib/ids.js";
+import { userDetails } from "../lib/user.js";
 import { cut, fail } from "./pq.js";
 
 const router = Router();
 router.use(requireAuth);
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-// the user details every webhook gets, taken from the signed-in session
-const userOf = (req) => ({
-  user_id: req.user.id,
-  email: req.user.email,
-  user_name: req.user.name,
-});
 
 // roughbook names: letters (any language), numbers and single spaces, at most 30 characters
 const cleanName = (raw) =>
@@ -27,7 +21,7 @@ const cleanName = (raw) =>
 // 1. the roughbooks of this user: [{ id, title, last_updated }]
 router.get("/", async (req, res) => {
   try {
-    const data = await callN8n("rb", userOf(req));
+    const data = await callN8n("rb", userDetails(req));
     const list = Array.isArray(data) ? data : Array.isArray(data?.books) ? data.books : [];
     const books = list
       .map((b) => ({
@@ -45,15 +39,10 @@ router.get("/", async (req, res) => {
 
 // 2. a new roughbook: n8n answers { id }
 router.post("/", async (req, res) => {
-   // letters, numbers and single spaces only, at most 30 characters
-  const name = cut(req.body?.name, 200)
-    .replace(/[^\p{L}\p{N} ]/gu, "")
-    .replace(/ {2,}/g, " ")
-    .trim()
-    .slice(0, 30);
-  if (!name) return res.status(400).json({ error: "Missing name" });
+  const rbName = cleanName(req.body?.name);
+  if (!rbName) return res.status(400).json({ error: "Missing name" });
   try {
-    const data = await callN8n("newrb", { rb_name: name, ...userOf(req) });
+    const data = await callN8n("newrb", { ...userDetails(req), rbName });
     const first = Array.isArray(data) ? data[0] : data;
     const id = cut(typeof first === "string" ? first : first?.id, 100);
     if (!RB_ID_RE.test(id)) return res.status(502).json({ error: "No id" });
@@ -68,7 +57,7 @@ router.get("/:rbId/chats", async (req, res) => {
   const { rbId } = req.params;
   if (!RB_ID_RE.test(rbId)) return res.status(404).json({ error: "Not found" });
   try {
-    const data = await callN8n("rbhistory", { rb_id: rbId, ...userOf(req) });
+    const data = await callN8n("rbhistory", { ...userDetails(req), rbId });
     const list = Array.isArray(data) ? data : Array.isArray(data?.chats) ? data.chats : [];
     const chats = list
       .filter((c) => UUID_RE.test(c?.id))
@@ -84,10 +73,10 @@ router.get("/:rbId/chats", async (req, res) => {
 router.post("/:rbId/rename", async (req, res) => {
   const { rbId } = req.params;
   if (!RB_ID_RE.test(rbId)) return res.status(404).json({ error: "Not found" });
-  const name = cleanName(req.body?.name);
-  if (!name) return res.status(400).json({ error: "Missing name" });
+  const rbName = cleanName(req.body?.name);
+  if (!rbName) return res.status(400).json({ error: "Missing name" });
   try {
-    await actionN8n("rbedit", { rb_id: rbId, rb_name: name, ...userOf(req) });
+    await actionN8n("rbedit", { ...userDetails(req), rbId, rbName });
     res.json({ ok: true });
   } catch (err) {
     fail(res, err);
@@ -100,9 +89,9 @@ router.post("/:rbId/delete", async (req, res) => {
   if (!RB_ID_RE.test(rbId)) return res.status(404).json({ error: "Not found" });
   try {
     await actionN8n("rbdel", {
-      rb_id: rbId,
-      include_chats: req.body?.includeChats === true,
-      ...userOf(req),
+      ...userDetails(req),
+      rbId,
+      includeChats: req.body?.includeChats === true,
     });
     res.json({ ok: true });
   } catch (err) {

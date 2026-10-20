@@ -1,83 +1,105 @@
-export async function callN8n(name, payload) {
-  const prefix = process.env.N8N_WEBHOOK_PREFIX ?? "webhook";
-  const base = process.env.N8N_BASE_URL.replace(/\/+$/, "");
-  const url = [base, prefix, name].filter(Boolean).join("/");
+import { safeUrl } from "./messages.js";
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Webhook-Secret": process.env.N8N_WEBHOOK_SECRET,
-    },
-    body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(90_000),
-  });
+// Every request to n8n goes to ONE webhook: /SMCE.
+// The old webhook name travels inside the request as "query" (for example "/delete"),
+// and n8n routes by it.
+const ENTRY = "SMCE";
 
-  if (res.status === 404) {
-    console.error(`n8n 404 for ${url}:`, (await res.text()).slice(0, 300));
-    const err = new Error(`n8n webhook "${name}" not found (404)`);
-    err.status = 404;
-    throw err;
-  }
-  if (!res.ok) {
-    const err = new Error(`n8n responded ${res.status} for ${url}`);
-    err.status = 502;
-    throw err;
-  }
-  const text = await res.text();
-  return text ? JSON.parse(text) : null;
+function entryUrl() {
+  const prefix = process.env.N8N_WEBHOOK_PREFIX || "webhook";
+  return `${process.env.N8N_BASE_URL}/${prefix}/${ENTRY}`;
 }
 
-// GET an n8n webhook and hand back the raw response, for files that are
-// streamed on to the browser. The details travel as a query string.
-export async function getN8nFile(name, params, signal) {
-  const prefix = process.env.N8N_WEBHOOK_PREFIX || "webhook";
-  const url = new URL(`${process.env.N8N_BASE_URL}/${prefix}/${name}`);
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null && value !== "") {
-      url.searchParams.set(key, String(value));
-    }
-  }
+const headers = () => ({
+  "Content-Type": "application/json",
+  "X-Webhook-Secret": process.env.N8N_WEBHOOK_SECRET,
+});
 
-  const res = await fetch(url, {
-    method: "GET",
-    headers: { "X-Webhook-Secret": process.env.N8N_WEBHOOK_SECRET },
-    signal,
+const bodyFor = (name, payload) => JSON.stringify({ ...payload, query: `/${name}` });
+
+function parse(text) {
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+// n8n can answer { role: "system", content: [{ type: "link", text: "https://…" }] },
+// which means: send the user to that link. (Punctuation in "role" is ignored.)
+export function systemLink(data) {
+  const msg = Array.isArray(data) ? data[0] : data;
+  if (!msg || typeof msg !== "object") return null;
+  const role = String(msg.role ?? "").replace(/[^a-z]/gi, "").toLowerCase();
+  if (role !== "system") return null;
+  const parts = Array.isArray(msg.content) ? msg.content : [];
+  const item = parts.find((p) => p?.type === "link" && typeof p.text === "string");
+  return item ? safeUrl(item.text.trim()) : null;
+}
+
+// thrown when n8n asks for a redirect; the routes' error handler turns it into { redirect }
+class RedirectError extends Error {
+  constructor(url) {
+    super("n8n asked for a redirect");
+    this.redirect = url;
+  }
+}
+
+function problem(status) {
+  const err = new Error(status === 404 ? "Not found" : `n8n responded ${status}`);
+  err.status = status === 404 ? 404 : 502;
+  return err;
+}
+
+// Ask n8n and use its answer.
+export async function callN8n(name, payload) {
+  const res = await fetch(entryUrl(), {
+    method: "POST",
+    headers: headers(),
+    body: bodyFor(name, payload),
+    signal: AbortSignal.timeout(90_000),
   });
-
-  if (res.status === 404) {
-    const err = new Error("Not found");
-    err.status = 404;
-    throw err;
-  }
+  const text = await res.text().catch(() => "");
   if (!res.ok) {
-    const err = new Error(`n8n responded ${res.status}`);
-    err.status = 502;
-    throw err;
+    console.error(`[n8n ${name}] answered ${res.status}: ${text.slice(0, 200)}`);
+    throw problem(res.status);
   }
-  return res;
+  const data = parse(text);
+  const url = systemLink(data);
+  if (url) throw new RedirectError(url);
+  return data;
 }
 
 // For actions where only "did it work?" matters (delete, pin, rename...):
 // any 2xx answer counts as success, whatever the body looks like.
-// If n8n answers with an error, it is logged here, so you can see why.
 export async function actionN8n(name, payload) {
-  const prefix = process.env.N8N_WEBHOOK_PREFIX || "webhook";
-  const res = await fetch(`${process.env.N8N_BASE_URL}/${prefix}/${name}`, {
+  const res = await fetch(entryUrl(), {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Webhook-Secret": process.env.N8N_WEBHOOK_SECRET,
-    },
-    body: JSON.stringify(payload),
+    headers: headers(),
+    body: bodyFor(name, payload),
     signal: AbortSignal.timeout(90_000),
   });
-
-  const body = await res.text().catch(() => "");
+  const text = await res.text().catch(() => "");
   if (!res.ok) {
-    console.error(`[n8n ${name}] answered ${res.status}: ${body.slice(0, 200)}`);
-    const err = new Error(`n8n responded ${res.status}`);
-    err.status = res.status === 404 ? 404 : 502;
-    throw err;
+    console.error(`[n8n ${name}] answered ${res.status}: ${text.slice(0, 200)}`);
+    throw problem(res.status);
   }
+  const url = systemLink(parse(text));
+  if (url) throw new RedirectError(url);
+}
+
+// Ask n8n and hand back the raw response, for files that are streamed on to the browser.
+export async function getN8nFile(name, params, signal) {
+  const res = await fetch(entryUrl(), {
+    method: "POST",
+    headers: headers(),
+    body: bodyFor(name, params),
+    signal,
+  });
+  if (!res.ok) {
+    console.error(`[n8n ${name}] answered ${res.status}`);
+    throw problem(res.status);
+  }
+  return res;
 }

@@ -1,16 +1,17 @@
 import { Router } from "express";
-import requireAuth from "../middleware/requireAuth.js";
-import { callN8n, getN8nFile } from "../lib/n8n.js";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
+import requireAuth from "../middleware/requireAuth.js";
+import { callN8n, getN8nFile, systemLink } from "../lib/n8n.js";
+import { normalizeMessage, safeUrl } from "../lib/messages.js";
+import { RB_ID_RE } from "../lib/ids.js";
+import { userDetails } from "../lib/user.js";
 import {
   markPending,
   setPendingWords,
   clearPending,
   getPending,
 } from "../lib/pending.js";
-import { normalizeMessage, safeUrl } from "../lib/messages.js";
-import { RB_ID_RE } from "../lib/ids.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -32,20 +33,6 @@ function cleanWords(data) {
     .filter((w) => typeof w === "string" && w.trim())
     .map((w) => w.trim().slice(0, 40))
     .slice(0, 10);
-}
-
-// A file name that is safe to put in a header: plain characters only
-function safeFileName(name, filetype) {
-  const ext =
-    typeof filetype === "string"
-      ? filetype.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 10)
-      : "";
-  let base =
-    typeof name === "string"
-      ? name.replace(/[^A-Za-z0-9 ._()-]/g, "").trim().slice(0, 100)
-      : "";
-  if (!base) base = "document";
-  return ext && !base.toLowerCase().endsWith(`.${ext}`) ? `${base}.${ext}` : base;
 }
 
 // what the user tapped or answered (the readable version is sent as the message text)
@@ -72,44 +59,64 @@ function cleanSelection(s) {
   return { id: s.id, source: s.source, messageId };
 }
 
+// A file name that is safe to put in a header: plain characters only
+function safeFileName(name, filetype) {
+  const ext =
+    typeof filetype === "string"
+      ? filetype.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 10)
+      : "";
+  let base =
+    typeof name === "string"
+      ? name.replace(/[^A-Za-z0-9 ._()-]/g, "").trim().slice(0, 100)
+      : "";
+  if (!base) base = "document";
+  return ext && !base.toLowerCase().endsWith(`.${ext}`) ? `${base}.${ext}` : base;
+}
+
 function fail(res, err) {
+  // n8n asked: send the user to this link
+  if (err.redirect) return res.json({ redirect: err.redirect });
   console.error("chat error:", err.message);
   if (err.status === 404) return res.status(404).json({ error: "Not found" });
   if (err.name === "TimeoutError") return res.status(504).json({ error: "Timed out" });
   return res.status(502).json({ error: "Something went wrong" });
 }
 
-// 1. create a chat (inside a roughbook when "rb" is given)
-router.post("/", async (req, res) => {
-  const rb = typeof req.body?.rb === "string" ? req.body.rb.trim() : "";
-  if (rb && !RB_ID_RE.test(rb)) return res.status(400).json({ error: "Invalid roughbook" });
+// 0. the latest chats for the sidebar (get-history answers 20, plus a "show_more" item if there are more)
+router.get("/", async (req, res) => {
   try {
-    const data = await callN8n("chat-create", { userId: req.user.id, rb: rb || undefined });
-    if (!UUID_RE.test(data?.chatId)) throw new Error("n8n returned a bad chatId");
-    res.status(201).json({ id: data.chatId });
+    const data = await callN8n("get-history", userDetails(req));
+    const items = Array.isArray(data) ? data : [];
+    res.json({
+      chats: items
+        .filter((c) => UUID_RE.test(c?.id))
+        .map((c) => {
+          const rough = c.rough ?? c.rbName;
+          const roughId = c.rough_id ?? c.rbId;
+          return {
+            id: c.id,
+            title: String(c.title ?? ""),
+            date: String(c.date ?? ""),
+            rough: typeof rough === "string" ? rough.slice(0, 100) : "",
+            roughId: typeof roughId === "string" && RB_ID_RE.test(roughId) ? roughId : "",
+            pin: c.pin === true,
+          };
+        }),
+      hasMore: items.some((c) => c?.id === "show_more"),
+    });
   } catch (err) {
     fail(res, err);
   }
 });
 
-// 0. the latest chats for the sidebar (get-history answers 20, plus a "show_more" item if there are more)
-router.get("/", async (req, res) => {
+// 1. create a chat (inside a roughbook when "rb" is given)
+router.post("/", async (req, res) => {
+  const rb = typeof req.body?.rb === "string" ? req.body.rb.trim() : "";
+  if (rb && !RB_ID_RE.test(rb)) return res.status(400).json({ error: "Invalid roughbook" });
   try {
-    const data = await callN8n("get-history", { userId: req.user.id });
-    const items = Array.isArray(data) ? data : [];
-    res.json({
-      chats: items
-        .filter((c) => UUID_RE.test(c?.id))
-        .map((c) => ({
-          id: c.id,
-          title: String(c.title ?? ""),
-          date: String(c.date ?? ""),
-          rough: typeof c.rough === "string" ? c.rough.slice(0, 100) : "",
-          roughId: typeof c.rough_id === "string" && RB_ID_RE.test(c.rough_id) ? c.rough_id : "",
-          pin: c.pin === true,
-        })),
-      hasMore: items.some((c) => c?.id === "show_more"),
-    });
+    const data = await callN8n("chat-create", { ...userDetails(req), rbId: rb || undefined });
+    if (!UUID_RE.test(data?.chatId)) throw new Error("n8n returned a bad chatId");
+    res.status(201).json({ id: data.chatId });
   } catch (err) {
     fail(res, err);
   }
@@ -120,11 +127,11 @@ router.get("/:chatId", async (req, res) => {
   const { chatId } = req.params;
   if (!UUID_RE.test(chatId)) return res.status(404).json({ error: "Not found" });
   try {
-    const data = await callN8n("chat-get", { userId: req.user.id, chatId });
+    const data = await callN8n("chat-get", { ...userDetails(req), chatId });
     // the answer is { id, title, rough?, messages }
     const chat = data?.chat ?? data;
     if (!chat || typeof chat !== "object") throw new Error("n8n returned no chat");
-    const rough = chat.rough ?? data?.rough;
+    const rough = chat.rough ?? data?.rough ?? chat.rbName;
     const waiting = getPending(req.user.id, chatId);
     res.json({
       chat: {
@@ -155,7 +162,7 @@ router.post("/:chatId/messages", async (req, res) => {
 
   try {
     const data = await callN8n("chat-message", {
-      userId,
+      ...userDetails(req),
       chatId,
       message: content.trim(),
       selection, // null unless the user tapped a button or list row
@@ -181,7 +188,7 @@ router.post("/:chatId/messages", async (req, res) => {
   }
 });
 
-// 5. a document button was tapped: n8n's workflow produces the file and it is
+// 4. a document button was tapped: n8n's workflow produces the file and it is
 // streamed on to the browser, which downloads it. Nothing is sent to the chat.
 router.get("/:chatId/docs/:messageId", async (req, res) => {
   const { chatId, messageId } = req.params;
@@ -203,23 +210,30 @@ router.get("/:chatId/docs/:messageId", async (req, res) => {
   try {
     const upstream = await getN8nFile(
       "docs",
-      {
-        // the user details come from the signed-in session, never from the browser
-        userId: req.user.id,
-        email: req.user.email,
-        name: req.user.name,
-        chatId,
-        messageId,
-        link,
-      },
+      { ...userDetails(req), chatId, messageId, link: link || undefined },
       controller.signal
     );
     clearTimeout(timer);
 
+    // n8n did not send a file: it may be asking for a redirect
+    const type = upstream.headers.get("content-type") || "";
+    if (type.includes("application/json")) {
+      const text = await upstream.text().catch(() => "");
+      let data = null;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        /* not JSON */
+      }
+      const url = systemLink(data);
+      if (url) return res.json({ redirect: url });
+      return res.status(502).json({ error: "Not a file" });
+    }
+
     // always a download, never shown inside the page
     const disposition = upstream.headers.get("content-disposition") || "";
     res.set({
-      "Content-Type": upstream.headers.get("content-type") || "application/octet-stream",
+      "Content-Type": type || "application/octet-stream",
       "Content-Disposition": /^attachment/i.test(disposition)
         ? disposition
         : `attachment; filename="${fileName}"`,

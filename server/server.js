@@ -12,6 +12,7 @@ import pqRouter from "./src/routes/pq.js";
 import bmRouter from "./src/routes/bm.js";
 import rbRouter from "./src/routes/rb.js";
 import chatActionsRouter from "./src/routes/chatActions.js";
+import accountRouter from "./src/routes/account.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -44,6 +45,12 @@ app.use(
   rateLimit({ windowMs: 60_000, limit: 60, standardHeaders: true, legacyHeaders: false }),
   chatActionsRouter,
   chatsRouter
+);
+
+app.use(
+  "/api/account",
+  rateLimit({ windowMs: 60_000, limit: 5, standardHeaders: true, legacyHeaders: false }),
+  accountRouter
 );
 
 // chats (every route inside requires a signed-in user)   <-- added

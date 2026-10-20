@@ -1,5 +1,4 @@
-import { Link, useMatch, useNavigate } from "react-router-dom";
-import { authClient } from "../../lib/auth-client";
+import { Link, useMatch } from "react-router-dom";
 import { requestChatFocus, warmUpKeyboard } from "../../lib/keyboard";
 import SidebarToggle from "./SidebarToggle";
 import ChatListItem from "./ChatListItem";
@@ -8,6 +7,7 @@ import ResizeHandle from "./ResizeHandle";
 import useCollapsed from "./useCollapsed";
 import { useHistory } from "./history-context";
 import { SIDEBAR_DEFAULT_WIDTH } from "./config";
+import SettingsMenu from "./SettingsMenu";
 
 // the little chevron of a foldable section: down when folded, up when open
 function Chevron({ open }) {
@@ -48,7 +48,6 @@ export default function Sidebar({
   onToggle,
   onNavigate,
 }) {
-  const navigate = useNavigate();
   const { chats, pinned, hasMore, status, retry } = useHistory();
   const activeId = useMatch("/chat/:chatId")?.params.chatId;
   const [pinnedCollapsed, togglePinned] = useCollapsed("sidebar-pinned-collapsed");
@@ -204,16 +203,7 @@ export default function Sidebar({
 
       {/* pinned bottom */}
       <div className="shrink-0 border-t border-zinc-800 p-3">
-        <button
-          onClick={() =>
-            authClient.signOut({
-              fetchOptions: { onSuccess: () => navigate("/login") },
-            })
-          }
-          className="w-full cursor-pointer rounded-lg px-3 py-2 text-left text-sm text-zinc-300 transition-colors hover:bg-zinc-800"
-        >
-          Sign out
-        </button>
+        <SettingsMenu onNavigate={onNavigate} />
       </div>
 
       {onResize && <ResizeHandle width={width} onResize={onResize} />}

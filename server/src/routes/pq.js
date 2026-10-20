@@ -2,6 +2,7 @@ import { Router } from "express";
 import requireAuth from "../middleware/requireAuth.js";
 import { callN8n } from "../lib/n8n.js";
 import { safeUrl } from "../lib/messages.js";
+import { userDetails } from "../lib/user.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -9,6 +10,8 @@ router.use(requireAuth);
 const cut = (v, max) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
 function fail(res, err) {
+  // n8n asked: send the user to this link
+  if (err.redirect) return res.json({ redirect: err.redirect });
   console.error("past questions error:", err.message);
   if (err.status === 404) return res.status(404).json({ error: "Not found" });
   if (err.name === "TimeoutError") return res.status(504).json({ error: "Timed out" });
@@ -46,10 +49,10 @@ function groupsFrom(data) {
   return groups.slice(0, 50);
 }
 
-// 1. the page loads: the list of subjects, e.g. ["Chemical Pathology", "Hematology", ...]
+// 1. the page loads: the list of subjects
 router.get("/subjects", async (req, res) => {
   try {
-    const data = await callN8n("pq", { user_id: req.user.id, email: req.user.email });
+    const data = await callN8n("pq", userDetails(req));
     const list = Array.isArray(data) ? data : Array.isArray(data?.subjects) ? data.subjects : [];
     const subjects = list
       .map((s) => cut(typeof s === "string" ? s : s?.name ?? s?.subject ?? s?.title, 100))
@@ -66,11 +69,7 @@ router.post("/papers", async (req, res) => {
   const subject = cut(req.body?.subject, 100);
   if (!subject) return res.status(400).json({ error: "Missing subject" });
   try {
-    const data = await callN8n("pass_pq", {
-      user_id: req.user.id,
-      email: req.user.email,
-      button: subject, // which button was tapped
-    });
+    const data = await callN8n("pass_pq", { ...userDetails(req), button: subject });
     res.json({ groups: groupsFrom(data) });
   } catch (err) {
     fail(res, err);
@@ -86,7 +85,7 @@ router.post("/start", async (req, res) => {
     return res.status(400).json({ error: "Invalid request" });
   }
   try {
-    const data = await callN8n("qwertpq", { time, code, title, user_id: req.user.id });
+    const data = await callN8n("qwertpq", { ...userDetails(req), time, code, title });
     const link = linkFrom(data);
     if (!link) return res.status(502).json({ error: "No link" });
     res.json({ link });
@@ -98,11 +97,7 @@ router.post("/start", async (req, res) => {
 // 4. "Add past question": n8n answers with a link
 router.post("/add", async (req, res) => {
   try {
-    const data = await callN8n("add_pq", {
-      user_id: req.user.id,
-      email: req.user.email,
-      name: req.user.name,
-    });
+    const data = await callN8n("add_pq", userDetails(req));
     const link = linkFrom(data);
     if (!link) return res.status(502).json({ error: "No link" });
     res.json({ link });

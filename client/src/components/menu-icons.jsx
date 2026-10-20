@@ -25,4 +25,18 @@ export const ICONS = {
   remove: icon(<path d="M6 6l12 12M18 6L6 18" />),
   check: icon(<path d="M5 12l5 5L20 7" />),
   chevron: icon(<path d="M6 9l6 6 6-6" />),
+  user: icon(
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21a8 8 0 0 1 16 0" />
+    </>
+  ),
+  logout: icon(<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11" />),
+  settings: icon(
+    <>
+      <path d="M4 7h9M17 7h3M4 17h3M11 17h9" />
+      <circle cx="15" cy="7" r="2" />
+      <circle cx="9" cy="17" r="2" />
+    </>
+  ),
 };

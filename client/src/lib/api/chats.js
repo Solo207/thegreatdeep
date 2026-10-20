@@ -1,3 +1,5 @@
+import { unwrap } from "./http";
+
 // The only file that calls /api/chats. Pages and hooks use these functions.
 
 export class ApiError extends Error {
@@ -27,7 +29,7 @@ async function request(path, options = {}) {
     throw new ApiError(0, "network"); // offline, server down, etc.
   }
   if (!res.ok) throw new ApiError(res.status, kindFor(res.status));
-  return res.json();
+  return unwrap(res);
 }
 
 // Create an empty chat (inside a roughbook when rb is given). Returns its id.
@@ -73,6 +75,11 @@ export async function downloadDoc(chatId, messageId, { link, name, filetype }) {
     throw new ApiError(0, "network"); // offline, server down, etc.
   }
   if (!res.ok) throw new ApiError(res.status, kindFor(res.status));
+  // n8n can answer with a link to send the user to, instead of a file
+  if ((res.headers.get("content-type") || "").includes("application/json")) {
+    await unwrap(res); // goes to the link (and never returns) if n8n asked for it
+    throw new ApiError(502, "failed"); // otherwise it was not a file
+  }
 
   const disposition = res.headers.get("content-disposition") ?? "";
   const match = /filename="([^"]+)"/.exec(disposition);

@@ -1,4 +1,5 @@
 import { ApiError } from "./chats";
+import { unwrap } from "./http";
 
 const kindFor = (status) =>
   status === 401 ? "signed_out"
@@ -18,7 +19,7 @@ async function request(path, options = {}) {
     throw new ApiError(0, "network");
   }
   if (!res.ok) throw new ApiError(res.status, kindFor(res.status));
-  return res.json();
+  return unwrap(res);
 }
 
 const post = (path, body) =>
