@@ -16,6 +16,7 @@ const buttonStyle =
 
 export default function Chats() {
   const toast = useToast();
+  console.log(useToast());
   const { status, chats, setChats, retry, reload } = useAllChats();
   const { refresh } = useHistory();
   const [selecting, setSelecting] = useState(false);
@@ -44,7 +45,6 @@ export default function Chats() {
     // all the picked chats go to n8n together, as one array
   const confirmDelete = async () => {
     console.log(typeof toast, typeof setChats, typeof refresh);
-    console.log(useToast());
     setDeleteState("busy");
     const ids = [...picked];
     try {
