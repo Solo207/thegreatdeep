@@ -15,7 +15,7 @@ const buttonStyle =
   "cursor-pointer rounded-lg border border-zinc-700 px-3.5 py-2 text-sm transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50";
 
 export default function Chats() {
-  const { toast } = useToast();
+  const toast = useToast();
   const { status, chats, setChats, retry, reload } = useAllChats();
   const { refresh } = useHistory();
   const [selecting, setSelecting] = useState(false);
@@ -44,6 +44,7 @@ export default function Chats() {
     // all the picked chats go to n8n together, as one array
   const confirmDelete = async () => {
     console.log(typeof toast, typeof setChats, typeof refresh);
+    console.log(useToast());
     setDeleteState("busy");
     const ids = [...picked];
     try {
