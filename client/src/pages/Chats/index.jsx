@@ -43,6 +43,7 @@ export default function Chats() {
 
     // all the picked chats go to n8n together, as one array
   const confirmDelete = async () => {
+    console.log(typeof toast, typeof setChats, typeof refresh);
     setDeleteState("busy");
     const ids = [...picked];
     try {
