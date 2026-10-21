@@ -92,7 +92,7 @@ export default function SettingsMenu({ onNavigate }) {
           error={error}
           onConfirm={confirmChange}
           onCancel={() => setConfirming(false)}
-          delaySeconds={5}
+          delaySeconds={10}
         />
       )}
     </>
