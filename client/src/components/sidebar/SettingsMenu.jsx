@@ -10,13 +10,14 @@ import ConfirmDialog from "../../pages/PastQuestions/ConfirmDialog";
 import { resignAccount } from "../../lib/api/account";
 import { useHistory } from "./history-context";
 
-const WARNING = `To change your user details, your account has to start fresh.
+const WARNING = `Only use this when you are moving to a new class, for example from 3rd year to 4th year.
 
-Your history will be cleared: every chat and all its messages, including your pinned chats and the chats inside your roughbooks.
+Changing your user details starts your account fresh. Your old history and bookmarks belong to your old class, and clearing them keeps that material from mixing with your new one:
 
-Your bookmarks will be cleared: every past question you saved.
+- Your history will be cleared: every chat and all its messages, including your pinned chats and the chats inside your roughbooks.
+- Your bookmarks will be cleared: every past question you saved.
 
-This can't be undone. Do you want to continue?`;
+If you are staying in the same class, or only need to fix a small mistake, don't use this. It can't be undone.`;
 
 // The Settings button at the bottom of the sidebar: Change user details, and Sign out.
 export default function SettingsMenu({ onNavigate }) {
@@ -76,7 +77,7 @@ export default function SettingsMenu({ onNavigate }) {
           <MenuItem iconNode={ICONS.user} onClick={askChange}>
             Change user details
           </MenuItem>
-          <MenuItem iconNode={ICONS.logout} onClick={signOut}>
+          <MenuItem iconNode={ICONS.logout} onClick={signOut} danger>
             Sign out
           </MenuItem>
         </PopoverMenu>
@@ -91,6 +92,7 @@ export default function SettingsMenu({ onNavigate }) {
           error={error}
           onConfirm={confirmChange}
           onCancel={() => setConfirming(false)}
+          delaySeconds={5}
         />
       )}
     </>

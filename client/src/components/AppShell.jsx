@@ -13,6 +13,7 @@ import useVisualViewportHeight from "../hooks/useVisualViewportHeight";
 import { SIDEBAR_SLIDE_MS, SIDEBAR_SWIPE_OPEN } from "./sidebar/config";
 import { requestChatFocus, closeKeyboard } from "../lib/keyboard";
 import ToastProvider from "./toast/ToastProvider";
+import NoticeListener from "./toast/NoticeListener";
 
 export default function AppShell() {
   const {
@@ -75,6 +76,8 @@ export default function AppShell() {
               autoComplete="off"
               className="pointer-events-none fixed left-0 top-0 h-px w-px opacity-0"
             />
+
+            <NoticeListener />
 
             {/* big screens, pinned open: the sidebar sits beside the page */}
             {isDesktop && isOpen && (

@@ -13,6 +13,7 @@ import bmRouter from "./src/routes/bm.js";
 import rbRouter from "./src/routes/rb.js";
 import chatActionsRouter from "./src/routes/chatActions.js";
 import accountRouter from "./src/routes/account.js";
+import externalRouter from "./src/routes/external.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -76,6 +77,12 @@ app.use(
   "/api/rb",
   rateLimit({ windowMs: 60_000, limit: 60, standardHeaders: true, legacyHeaders: false }),
   rbRouter
+);
+
+app.use(
+  "/api/external",
+  rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: true, legacyHeaders: false }),
+  externalRouter
 );
 
 app.use(express.static(distPath));

@@ -25,6 +25,7 @@ export default function EventsProvider({ children }) {
     };
     es.addEventListener("reply", forward("reply"));
     es.addEventListener("reply_failed", forward("reply_failed"));
+    es.addEventListener("notice", forward("notice"));
 
     return () => es.close();
   }, []);
