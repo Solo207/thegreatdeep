@@ -24,13 +24,13 @@ const [, setParams] = useSearchParams();
 const [confirmSignOut, setConfirmSignOut] = useState(false);
 
 const openProfile = () => {
-  closeMenu();
+  setMenu(null);
   setParams((prev) => {
     const next = new URLSearchParams(prev);
     next.set("profile", "1");
     return next;
   });
-  onNavigate?.(); // closes the drawer on phones
+  onNavigate?.();
 };
 
 const signOut = () => {
@@ -75,16 +75,26 @@ const signOut = () => {
         Settings
       </button>
 
-      {menu && (
+            {menu && (
         <PopoverMenu rect={menu.rect} width={220} onClose={() => setMenu(null)}>
-        <MenuItem icon={ICONS.user} label="Profile" onClick={openProfile} />
-        <MenuItem icon={ICONS.edit} label="Change user details" onClick={/* your existing handler */} />
-        <MenuItem
-        icon={ICONS.logout}
-        label="Sign out"
-        danger
-        onClick={() => { closeMenu(); setConfirmSignOut(true); }}
-        />
+          <MenuItem icon={ICONS.user} label="Profile" onClick={openProfile} />
+          <MenuItem
+            icon={ICONS.edit}
+            label="Change user details"
+            onClick={() => {
+              setMenu(null);
+              setConfirming(true);
+            }}
+          />
+          <MenuItem
+            icon={ICONS.logout}
+            label="Sign out"
+            danger
+            onClick={() => {
+              setMenu(null);
+              setConfirmSignOut(true);
+            }}
+          />
         </PopoverMenu>
       )}
 
@@ -98,19 +108,19 @@ const signOut = () => {
           busy={busy}
           error={error}
           onConfirm={confirmChange}
-          onCancel={() => setConfirming(false)}          
+          onCancel={() => setConfirming(false)}
         />
       )}
 
-  {confirmSignOut && (
-  <ConfirmDialog
-    heading="Sign out?"
-    message="You will need to sign in with Google again to get back in."
-    confirmLabel="Sign out"
-    onConfirm={signOut}
-    onCancel={() => setConfirmSignOut(false)}
-  />
-)}
+      {confirmSignOut && (
+        <ConfirmDialog
+          heading="Sign out?"
+          message="You will need to sign in with Google again to get back in."
+          confirmLabel="Sign out"
+          onConfirm={signOut}
+          onCancel={() => setConfirmSignOut(false)}
+        />
+      )}
     </>
   );
 }
