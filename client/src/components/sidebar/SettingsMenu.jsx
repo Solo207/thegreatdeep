@@ -95,17 +95,22 @@ export default function SettingsMenu({ onNavigate }) {
 
       {menu && (
         <PopoverMenu rect={menu.rect} width={220} onClose={() => setMenu(null)}>
-          <MenuItem icon={ICONS.user} label="Profile" onClick={openProfile} />
-          <MenuItem icon={ICONS.edit} label="Change user details" onClick={askChange} />
-          <MenuItem
-            icon={ICONS.logout}
-            label="Sign out"
-            danger
-            onClick={() => {
-              setMenu(null);
-              setConfirmSignOut(true);
-            }}
-          />
+          <MenuItem icon={ICONS.user} onClick={openProfile}>
+  Profile
+</MenuItem>
+<MenuItem icon={ICONS.edit} onClick={askChange}>
+  Change user details
+</MenuItem>
+<MenuItem
+  icon={ICONS.logout}
+  danger
+  onClick={() => {
+    setMenu(null);
+    setConfirmSignOut(true);
+  }}
+>
+  Sign out
+</MenuItem>
         </PopoverMenu>
       )}
 
