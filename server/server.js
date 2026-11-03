@@ -22,7 +22,16 @@ const distPath = path.resolve(__dirname, "../client/dist");
 
 app.set("trust proxy", 1); // you're behind Easypanel's proxy
 
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        "img-src": ["'self'", "data:", "https://*.googleusercontent.com"],
+      },
+    },
+  }),
+);
 
 // auth endpoints: generous, because the app asks "am I signed in?" on every page load
 app.use("/api/auth", rateLimit({ windowMs: 60_000, limit: 100, standardHeaders: true, legacyHeaders: false }));
@@ -50,7 +59,7 @@ app.use(
 
 app.use(
   "/api/account",
-  rateLimit({ windowMs: 60_000, limit: 5, standardHeaders: true, legacyHeaders: false }),
+  rateLimit({ windowMs: 60_000, limit: 60, standardHeaders: true, legacyHeaders: false }),
   accountRouter
 );
 

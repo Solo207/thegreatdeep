@@ -14,6 +14,8 @@ import { SIDEBAR_SLIDE_MS, SIDEBAR_SWIPE_OPEN } from "./sidebar/config";
 import { requestChatFocus, closeKeyboard } from "../lib/keyboard";
 import ToastProvider from "./toast/ToastProvider";
 import NoticeListener from "./toast/NoticeListener";
+import NewChatButton from "./NewChatButton";
+import ProfilePanel from "./profile/ProfilePanel";
 
 export default function AppShell() {
   const {
@@ -25,6 +27,8 @@ export default function AppShell() {
   const { pathname } = useLocation();
   const onNewChat = pathname === "/new";
 
+  const showStripNewChat =
+  !isDesktop && !pathname.startsWith("/chat/") && pathname !== "/new";
   // where a page can put its title: the top strip, next to the sidebar button
   const [headerSlot, setHeaderSlot] = useState(null);
 
@@ -135,7 +139,13 @@ export default function AppShell() {
               </>
             )}
 
-            <div className="flex min-w-0 flex-1 flex-col">
+            <div className={`flex h-[60px] shrink-0 items-center gap-2 p-3 ${isDesktop ? "pl-[60px]" : ""}`}>
+              {!isDesktop && <SidebarToggle onClick={toggleAndFocus} />}
+              <div ref={setHeaderSlot} className="min-w-0 flex-1" />
+              {showStripNewChat && <NewChatButton />}
+            </div>            
+
+            <div className="relative flex min-w-0 flex-1 flex-col">
               {/* top strip: the sidebar button, with the page's title on the same line */}
               {!isOpen && (
                 <div
@@ -154,6 +164,7 @@ export default function AppShell() {
                   </PageBoundary>
                 </HeaderSlotContext.Provider>
               </main>
+              <ProfilePanel />
             </div>
           </div>
         </RoughbooksProvider>

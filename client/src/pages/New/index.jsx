@@ -6,6 +6,7 @@ import useMediaQuery from "../../hooks/useMediaQuery";
 import ChatInput from "../../components/chat/ChatInput";
 import { CHAT_MAX_WIDTH } from "../../components/chat/config";
 import usePageTitle from "../../hooks/usePageTitle";
+import useGreeting from "../../hooks/useGreeting";
 
 const ERROR_TEXT = {
   signed_out: "Your session has expired. Use Sign out (top right), then sign in again.",
@@ -24,6 +25,7 @@ export default function New() {
   usePageTitle("New chat");
 
   const firstName = data?.user.name?.split(" ")[0];
+  const { text: greeting, ready: greetingReady } = useGreeting(firstName);
 
   // On a phone with the keyboard up: the box goes right above the keyboard and the
   // greeting is centred in the space left above it. Otherwise (computer, or keyboard
@@ -53,12 +55,8 @@ export default function New() {
       >
         {/* in dock mode this area stretches, and the greeting sits in its middle */}
         <div className={dock ? "flex flex-1 items-center justify-center" : ""}>
-          <h1
-            className={`text-center text-3xl font-bold leading-tight ${
-              dock ? "" : "mb-8"
-            }`}
-          >
-            Hi {firstName}, what are we studying?
+          <h1 className={`text-center text-3xl font-bold leading-tight ${dock ? "" : "mb-8"} ${greetingReady ? "" : "invisible"}`}>
+            {greeting}
           </h1>
         </div>
 

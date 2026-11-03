@@ -1,39 +1,42 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { authClient } from "../../lib/auth-client";
-import PopoverMenu from "../PopoverMenu";
-import MenuItem from "../MenuItem";
-import { ICONS } from "../menu-icons";
-import { useRoughbooks } from "../roughbooks/roughbooks-context";
-import { useToast } from "../toast/toast-context";
-import ConfirmDialog from "../../pages/PastQuestions/ConfirmDialog";
-import { resignAccount } from "../../lib/api/account";
-import { useHistory } from "./history-context";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
-const WARNING = `Only use this when you are moving to a new class, for example from 3rd year to 4th year.
+const CHANGE_DETAILS_TEXT = `Only use this when you are moving to a new class, for example from 3rd year to 4th year.
 
-Changing your user details starts your account fresh. Your old history and bookmarks belong to your old class, and clearing them keeps that material from mixing with your new one:
+Why this exists
+Your history and bookmarks belong to the class you are leaving. When you move up, your courses, topics and past questions change, and keeping the old material would mix it with your new class. Changing your user details gives you a clean start.
 
-- Your history will be cleared: every chat and all its messages, including your pinned chats and the chats inside your roughbooks.
-- Your bookmarks will be cleared: every past question you saved.
+What will be cleared
+• Your history: every chat and all of its messages, including pinned chats and the chats inside your roughbooks.
+• Your bookmarks: every past question you saved.
 
-If you are staying in the same class, or only need to fix a small mistake, don't use this. It can't be undone.`;
+What to do first
+• Copy anything from your chats that you want to keep (use the copy icon under a message).
+• Save any notes or links you still need somewhere else.
 
-// The Settings button at the bottom of the sidebar: Change user details, and Sign out.
-export default function SettingsMenu({ onNavigate }) {
-  const navigate = useNavigate();
-  const toast = useToast();
-  const { refresh } = useHistory();
-  const roughbooks = useRoughbooks();
-  const [menu, setMenu] = useState(null); // null | { rect }
-  const [confirming, setConfirming] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
+When not to use it
+If you are staying in the same class, or you only want to fix a small mistake, do not use this. Nothing cleared here can be brought back.
 
-  const signOut = () => {
-    setMenu(null);
-    authClient.signOut({ fetchOptions: { onSuccess: () => navigate("/login") } });
-  };
+You have reached the end. The button will unlock in a few seconds.`;
+
+// inside the component:
+const navigate = useNavigate();
+const [, setParams] = useSearchParams();
+const [confirmSignOut, setConfirmSignOut] = useState(false);
+
+const openProfile = () => {
+  closeMenu();
+  setParams((prev) => {
+    const next = new URLSearchParams(prev);
+    next.set("profile", "1");
+    return next;
+  });
+  onNavigate?.(); // closes the drawer on phones
+};
+
+const signOut = () => {
+  setConfirmSignOut(false);
+  authClient.signOut({ fetchOptions: { onSuccess: () => navigate("/login") } });
+};
 
   const askChange = () => {
     setMenu(null);
@@ -74,27 +77,40 @@ export default function SettingsMenu({ onNavigate }) {
 
       {menu && (
         <PopoverMenu rect={menu.rect} width={220} onClose={() => setMenu(null)}>
-          <MenuItem iconNode={ICONS.user} onClick={askChange}>
-            Change user details
-          </MenuItem>
-          <MenuItem iconNode={ICONS.logout} onClick={signOut} danger>
-            Sign out
-          </MenuItem>
+        <MenuItem icon={ICONS.user} label="Profile" onClick={openProfile} />
+        <MenuItem icon={ICONS.edit} label="Change user details" onClick={/* your existing handler */} />
+        <MenuItem
+        icon={ICONS.logout}
+        label="Sign out"
+        danger
+        onClick={() => { closeMenu(); setConfirmSignOut(true); }}
+        />
         </PopoverMenu>
       )}
 
       {confirming && (
         <ConfirmDialog
-          heading="Change your user details?"
-          message={WARNING}
+          heading="Change user details?"
+          message={CHANGE_DETAILS_TEXT}
           confirmLabel="Clear and continue"
+          delaySeconds={5}
+          mustScroll
           busy={busy}
           error={error}
           onConfirm={confirmChange}
-          onCancel={() => setConfirming(false)}
-          delaySeconds={10}
+          onCancel={() => setConfirming(false)}          
         />
       )}
+
+  {confirmSignOut && (
+  <ConfirmDialog
+    heading="Sign out?"
+    message="You will need to sign in with Google again to get back in."
+    confirmLabel="Sign out"
+    onConfirm={signOut}
+    onCancel={() => setConfirmSignOut(false)}
+  />
+)}
     </>
   );
 }

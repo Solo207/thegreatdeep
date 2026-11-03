@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { CHAT_MAX_WIDTH } from "../../components/chat/config";
 import { HeaderSlotContext } from "../../components/header-slot-context";
 import ChatActions from "../../components/sidebar/ChatActions";
+import NewChatButton from "../../components/NewChatButton";
 
 // The chat's title: "roughbook name / chat title", or just the title, with a 3-dots menu
 // at its right end (Pin, Rename, Delete, Roughbook).
@@ -27,6 +28,7 @@ export default function ChatHeader({ chat }) {
       <span className="min-w-0 flex-1 truncate font-bold" title={title}>
         {title}
       </span>
+      <NewChatButton size="h-8 w-8" />
       <button
         onClick={(e) => setMenu({ rect: e.currentTarget.getBoundingClientRect() })}
         aria-label="Chat options"

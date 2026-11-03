@@ -66,3 +66,6 @@ body,
   from { transform: scaleX(1); }
   to { transform: scaleX(0); }
 }
+
+@keyframes profile-in  { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes profile-out { from { transform: translateX(0); } to { transform: translateX(100%); } }

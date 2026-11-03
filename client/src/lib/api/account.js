@@ -17,3 +17,15 @@ export async function resignAccount() {
   if (!res.ok) throw new ApiError(res.status, "failed");
   return unwrap(res);
 }
+
+export async function getProfile() {
+  const res = await fetch("/api/account/profile", { credentials: "include" });
+  const data = await unwrap(res);
+  return data.profile;
+}
+
+export async function getGreeting() {
+  const res = await fetch("/api/account/greeting", { credentials: "include" });
+  const data = await unwrap(res);
+  return data.greeting || "";
+}
