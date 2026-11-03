@@ -1,4 +1,14 @@
+import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import PopoverMenu from "../PopoverMenu";
+import MenuItem from "../MenuItem";
+import { ICONS } from "../menu-icons";
+import ConfirmDialog from "../../pages/PastQuestions/ConfirmDialog";
+import { authClient } from "../../lib/auth-client";
+import { resignAccount } from "../../lib/api/account";
+import { useToast } from "../toast/toast-context";
+import { useHistory } from "./history-context";
+import { useRoughbooks } from "../roughbooks/roughbooks-context";
 
 const CHANGE_DETAILS_TEXT = `Only use this when you are moving to a new class, for example from 3rd year to 4th year.
 
@@ -18,30 +28,38 @@ If you are staying in the same class, or you only want to fix a small mistake, d
 
 You have reached the end. The button will unlock in a few seconds.`;
 
-// inside the component:
-const navigate = useNavigate();
-const [, setParams] = useSearchParams();
-const [confirmSignOut, setConfirmSignOut] = useState(false);
+export default function SettingsMenu({ onNavigate }) {
+  const navigate = useNavigate();
+  const [, setParams] = useSearchParams();
+  const toast = useToast();
+  const { refresh } = useHistory();
+  const roughbooks = useRoughbooks();
 
-const openProfile = () => {
-  setMenu(null);
-  setParams((prev) => {
-    const next = new URLSearchParams(prev);
-    next.set("profile", "1");
-    return next;
-  });
-  onNavigate?.();
-};
+  const [menu, setMenu] = useState(null);
+  const [confirming, setConfirming] = useState(false);
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
 
-const signOut = () => {
-  setConfirmSignOut(false);
-  authClient.signOut({ fetchOptions: { onSuccess: () => navigate("/login") } });
-};
+  const openProfile = () => {
+    setMenu(null);
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("profile", "1");
+      return next;
+    });
+    onNavigate?.();
+  };
 
   const askChange = () => {
     setMenu(null);
     setError(null);
     setConfirming(true);
+  };
+
+  const signOut = () => {
+    setConfirmSignOut(false);
+    authClient.signOut({ fetchOptions: { onSuccess: () => navigate("/login") } });
   };
 
   // If n8n answers with a link, the page is already on its way there and nothing below runs.
@@ -75,17 +93,10 @@ const signOut = () => {
         Settings
       </button>
 
-            {menu && (
+      {menu && (
         <PopoverMenu rect={menu.rect} width={220} onClose={() => setMenu(null)}>
           <MenuItem icon={ICONS.user} label="Profile" onClick={openProfile} />
-          <MenuItem
-            icon={ICONS.edit}
-            label="Change user details"
-            onClick={() => {
-              setMenu(null);
-              setConfirming(true);
-            }}
-          />
+          <MenuItem icon={ICONS.edit} label="Change user details" onClick={askChange} />
           <MenuItem
             icon={ICONS.logout}
             label="Sign out"
