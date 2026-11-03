@@ -126,7 +126,8 @@ export default function AppShell() {
               </div>
             )}
 
-            {/* small screens: the sidebar slides over the page as a drawer */}
+
+                          {/* small screens: the sidebar slides over the page as a drawer */}
             {!isDesktop && isOpen && (
               <>
                 <div
@@ -139,12 +140,6 @@ export default function AppShell() {
               </>
             )}
 
-            <div className={`flex h-[60px] shrink-0 items-center gap-2 p-3 ${isDesktop ? "pl-[60px]" : ""}`}>
-              {!isDesktop && <SidebarToggle onClick={toggleAndFocus} />}
-              <div ref={setHeaderSlot} className="min-w-0 flex-1" />
-              {showStripNewChat && <NewChatButton />}
-            </div>            
-
             <div className="relative flex min-w-0 flex-1 flex-col">
               {/* top strip: the sidebar button, with the page's title on the same line */}
               {!isOpen && (
@@ -155,6 +150,7 @@ export default function AppShell() {
                 >
                   {!isDesktop && <SidebarToggle onClick={toggleAndFocus} />}
                   <div ref={setHeaderSlot} className="min-w-0 flex-1" />
+                  {showStripNewChat && <NewChatButton />}
                 </div>
               )}
               <main className="flex min-h-0 flex-1 flex-col">
@@ -164,6 +160,7 @@ export default function AppShell() {
                   </PageBoundary>
                 </HeaderSlotContext.Provider>
               </main>
+
               <ProfilePanel />
             </div>
           </div>
