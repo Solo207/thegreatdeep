@@ -58,11 +58,11 @@ export async function sendMessage(chatId, content, selection = null, neighbors =
   const result = await request(`/${chatId}/messages`, {
     method: "POST",
     body: JSON.stringify({
-  content,            // the key your server probably reads
-  message: content,   // …and n8n's name for it
+  content,            // the key your server most likely reads
+  message: content,   // n8n's name for it
   selection,
-  above: neighbors.above ?? null,
-  below: neighbors.below ?? null,
+  above: neighbors?.above ?? null,
+  below: neighbors?.below ?? null,
   ...optionsPayload(chatId),
 }),
   });
