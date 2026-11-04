@@ -120,7 +120,7 @@ export default function ChatInput({
     }
   };
 
-  // one row, always: [ + ] [ Effort ] [ text ] [ send ]
+  // one row, always: [ + ] [ text ] [ Effort ] [ send ]
   return (
     <div
       // clicking anywhere in the box (not just the first line) focuses the text
@@ -129,9 +129,8 @@ export default function ChatInput({
       }}
       className="flex w-full cursor-text items-end gap-2 rounded-2xl border border-zinc-700 bg-zinc-800 p-2 pl-3 shadow-lg transition-colors focus-within:border-zinc-500"
     >
-      <PlusMenu chat={chat} />
-      <div className="shrink-0 whitespace-nowrap">
-        <EffortPill chat={chat} />
+      <div className="flex h-9 shrink-0 items-center">
+        <PlusMenu chat={chat} />
       </div>
 
       {/* the wrapper takes the free space; the mirror and the textarea share the same padding so the link highlight lines up */}
@@ -175,6 +174,10 @@ export default function ChatInput({
           placeholder={disabled ? "Waiting for the reply..." : "Ask anything..."}
           className="relative max-h-50 w-full min-w-0 flex-1 resize-none bg-transparent px-1 py-1.5 text-zinc-100 placeholder-zinc-500 outline-none disabled:cursor-not-allowed disabled:placeholder-zinc-600"
         />
+      </div>
+
+      <div className="flex h-9 shrink-0 items-center whitespace-nowrap">
+        <EffortPill chat={chat} />
       </div>
 
       <button
