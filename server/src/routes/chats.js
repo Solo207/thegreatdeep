@@ -12,6 +12,7 @@ import {
   clearPending,
   getPending,
 } from "../lib/pending.js";
+import { cleanOptions, hasOptions } from "../lib/detail.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -19,7 +20,10 @@ router.use(requireAuth);
 const MAX_LEN = 4000;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isValidText = (t) =>
-  typeof t === "string" && t.trim().length > 0 && t.length <= MAX_LEN;
+ typeof t === "string" && t.trim().length > 0 && t.length <= MAX_LEN;
+
+const ID_RE = /^[\w-]{1,100}$/;
+const neighbor = (v) => (typeof v === "string" && ID_RE.test(v) ? { messageId: v } : null);
 
 // n8n may answer at once with status words like [{ "text": "Mulling" }, { "text": "Processing" }]
 function cleanWords(data) {
@@ -169,6 +173,7 @@ router.post("/:chatId/messages", async (req, res) => {
       callbackUrl: process.env.PUBLIC_BASE_URL
         ? `${process.env.PUBLIC_BASE_URL}/api/internal/messages`
         : undefined,
+      ...(hasOptions(req.body) ? cleanOptions(req.body) : {}),
     });
 
     if (data?.message) {
@@ -207,14 +212,20 @@ router.get("/:chatId/docs/:messageId", async (req, res) => {
   const timer = setTimeout(() => controller.abort(), 90_000); // waiting for n8n to start answering
   res.on("close", () => controller.abort()); // the browser gave up, so stop asking n8n
 
-  try {
-    const upstream = await getN8nFile(
-      "docs",
-      { ...userDetails(req), chatId, messageId, link: link || undefined },
-      controller.signal
-    );
-    clearTimeout(timer);
-
+ try {
+  const upstream = await getN8nFile(
+    "docs",
+    {
+      ...userDetails(req),
+      chatId,
+      messageId,
+      link: link || undefined,
+      above: neighbor(req.query.above),
+      below: neighbor(req.query.below),
+    },
+    controller.signal
+  );
+  clearTimeout(timer);
     // n8n did not send a file: it may be asking for a redirect
     const type = upstream.headers.get("content-type") || "";
     if (type.includes("application/json")) {

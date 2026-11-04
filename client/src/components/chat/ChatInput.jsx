@@ -1,8 +1,12 @@
 import { Fragment, useEffect, useRef, useState } from "react";
+import { useParams } from "react-router-dom";
 import { splitLinks } from "../../lib/links";
 import useMediaQuery from "../../hooks/useMediaQuery";
 import { FOCUS_EVENT } from "../../lib/keyboard";
 import useKeyboardOpen from "../../hooks/useKeyboardOpen";
+import useChatOptions from "../../hooks/useChatOptions";
+import PlusMenu from "./options/PlusMenu";
+import EffortPill from "./options/EffortPill";
 
 const MAX_LENGTH = 4000;
 // marks web addresses in the box with a light highlight while you type (false turns it off)
@@ -18,6 +22,9 @@ export default function ChatInput({
   const [value, setValue] = useState("");
   const ref = useRef(null);
   const mirrorRef = useRef(null);
+
+  const { chatId } = useParams(); // undefined on /new and /roughbook/:rbId
+  const chat = useChatOptions(chatId);
 
   // phones and tablets: Enter makes a new line, the arrow button sends
   const isTouch = useMediaQuery("(pointer: coarse)");
@@ -110,7 +117,7 @@ export default function ChatInput({
     }
   };
 
-  return (
+return (
     <div
       // clicking anywhere in the box (not just the first line) focuses the text
       onClick={(e) => {
@@ -120,6 +127,9 @@ export default function ChatInput({
         compact ? "flex items-end gap-2 p-2 pl-4" : "p-3"
       }`}
     >
+      {/* compact: the + sits at the left of the single line */}
+      {compact && <PlusMenu chat={chat} />}
+
       <div className={`relative ${compact ? "min-w-0 flex-1 self-center py-1.5" : ""}`}>
         {HIGHLIGHT_LINKS && (
           <div
@@ -161,29 +171,34 @@ export default function ChatInput({
           className="relative max-h-50 w-full resize-none bg-transparent px-1 text-zinc-100 placeholder-zinc-500 outline-none disabled:cursor-not-allowed disabled:placeholder-zinc-600"
         />
       </div>
-      
-        <div className={compact ? "shrink-0" : "mt-2 flex justify-end"}>
+
+      <div className={compact ? "shrink-0" : "mt-2 flex items-center justify-between gap-2"}>
+        {/* normal layout: the + sits at the left of the bottom row */}
+        {!compact && <PlusMenu chat={chat} />}
+
+        <div className="flex items-center gap-2">
+          <EffortPill chat={chat} />
           <button
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={submit}
-          disabled={disabled || !value.trim()}
-          aria-label="Send message"
-          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg bg-indigo-500 text-white transition-colors hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-500"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-5 w-5"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={submit}
+            disabled={disabled || !value.trim()}
+            aria-label="Send message"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg bg-indigo-500 text-white transition-colors hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-500"
           >
-            <path d="M12 19V5M5 12l7-7 7 7" />
-          </svg>
-        </button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-5 w-5"
+            >
+              <path d="M12 19V5M5 12l7-7 7 7" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
-  );
-}
+);

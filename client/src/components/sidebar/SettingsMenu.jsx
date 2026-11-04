@@ -28,6 +28,29 @@ If you are staying in the same class, or you only want to fix a small mistake, d
 
 You have reached the end. The button will unlock in a few seconds.`;
 
+const ICON = "h-4 w-4 shrink-0";
+const SETTINGS_ICONS = {
+  profile: (
+    <svg viewBox="0 0 24 24" className={ICON} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  ),
+  edit: (
+    <svg viewBox="0 0 24 24" className={ICON} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  ),
+  logout: (
+    <svg viewBox="0 0 24 24" className={ICON} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <path d="m16 17 5-5-5-5" />
+      <path d="M21 12H9" />
+    </svg>
+  ),
+};
+
 export default function SettingsMenu({ onNavigate }) {
   const navigate = useNavigate();
   const [, setParams] = useSearchParams();
@@ -94,27 +117,27 @@ export default function SettingsMenu({ onNavigate }) {
       </button>
 
       {menu && (
-        <PopoverMenu rect={menu.rect} width={220} onClose={() => setMenu(null)}>
-          <MenuItem icon={ICONS.user} onClick={openProfile}>
-  Profile
-</MenuItem>
-<MenuItem icon={ICONS.edit} onClick={askChange}>
-  Change user details
-</MenuItem>
-<MenuItem
-  icon={ICONS.logout}
-  danger
-  onClick={() => {
-    setMenu(null);
-    setConfirmSignOut(true);
-  }}
->
-  Sign out
-</MenuItem>
-        </PopoverMenu>
-      )}
+  <PopoverMenu rect={menu.rect} width={220} onClose={() => setMenu(null)}>
+    <MenuItem icon={SETTINGS_ICONS.profile} onClick={openProfile}>
+      Profile
+    </MenuItem>
+    <MenuItem icon={SETTINGS_ICONS.edit} onClick={askChange}>
+      Change user details
+    </MenuItem>
+    <MenuItem
+      icon={SETTINGS_ICONS.logout}
+      danger
+      onClick={() => {
+        setMenu(null);
+        setConfirmSignOut(true);
+      }}
+    >
+      Sign out
+    </MenuItem>
+  </PopoverMenu>
+)}
 
-      {confirming && (
+{confirming && (
         <ConfirmDialog
           heading="Change user details?"
           message={CHANGE_DETAILS_TEXT}
@@ -139,4 +162,4 @@ export default function SettingsMenu({ onNavigate }) {
       )}
     </>
   );
-}
+  }

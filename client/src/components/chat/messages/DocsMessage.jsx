@@ -20,7 +20,7 @@ function saveBlob(blob, filename) {
 // A long horizontal download button for a document.
 // It can be tapped any number of times, but pauses for a few seconds after each tap.
 // Nothing is sent to the chat: the browser just starts a download.
-export default function DocsMessage({ message }) {
+export default function DocsMessage({ message, chatId, neighbors }) {
   const { chatId } = useParams();
   const { body, filetype, link } = message.content;
   const [busy, setBusy] = useState(false);     // the file is being fetched
@@ -44,6 +44,7 @@ export default function DocsMessage({ message }) {
     try {
       const { blob, filename } = await downloadDoc(chatId, message.id, {
         link,
+        neighbors,
         name: body,
         filetype,
       });

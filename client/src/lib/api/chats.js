@@ -1,4 +1,6 @@
 import { unwrap } from "./http";
+import { adoptDraft, optionsPayload, takePendingProject } from "../chatOptions";
+import { addChatToProject } from "./detail";
 
 // The only file that calls /api/chats. Pages and hooks use these functions.
 
@@ -38,7 +40,10 @@ export async function createChat({ rb } = {}) {
     method: "POST",
     body: JSON.stringify(rb ? { rb } : {}),
   });
-  return data.id;
+  const chatId = data.id;
+  // the Roughbook page already creates the chat inside its roughbook
+  adoptDraft(chatId, { skipProject: Boolean(rb) });
+  return chatId;
 }
 
 // Load a chat. Returns { chat: { id, title }, messages: [...] }
@@ -48,11 +53,19 @@ export function getChat(chatId) {
 
 // Send a message. `selection` is set when the user tapped a button or list row:
 // { id, source: "buttons" | "list", messageId }
-export function sendMessage(chatId, content, selection = null) {
-  return request(`/${chatId}/messages`, {
+export async function sendMessage(chatId, content, selection = null) {
+  const result = await request(`/${chatId}/messages`, {
     method: "POST",
-    body: JSON.stringify({ content, selection }),
+    body: JSON.stringify({
+      ...optionsPayload(chatId),
+      content,
+      selection,
+    }),
   });
+  // only after the send succeeded, so a failed send keeps the project pending
+  const pending = takePendingProject(chatId);
+  if (pending) addChatToProject(chatId, pending).catch(() => {});
+  return result;
 }
 
 // The latest chats for the sidebar. Returns { chats: [{ id, title, date, rough }], hasMore }
@@ -62,11 +75,18 @@ export function getHistory() {
 
 // Download a document. n8n's workflow produces the file, and the server passes it on.
 // Returns { blob, filename } (the server decides the file name).
-export async function downloadDoc(chatId, messageId, { link, name, filetype }) {
+export async function downloadDoc(
+  chatId,
+  messageId,
+  { link, name, filetype },
+  neighbors = {}
+) {
   const params = new URLSearchParams();
   if (link) params.set("link", link);
   if (name) params.set("name", name);
   if (filetype) params.set("filetype", filetype);
+  if (neighbors.above) params.set("above", neighbors.above);
+  if (neighbors.below) params.set("below", neighbors.below);
 
   let res;
   try {

@@ -54,6 +54,8 @@ export default function MessageList({ messages, isLoading, words = [], onSelect 
     spacer.style.height = `${Math.max(0, needed)}px`;
   };
 
+  const neighbors = { above: messages[i - 1]?.id ?? null, below: messages[i + 1]?.id ?? null };
+
   // The reply is finished: let the page come down so the last message sits at the bottom,
   // then remove the blank room, so nothing can be scrolled past the last message.
   const releaseAnchor = () => {
@@ -207,6 +209,7 @@ export default function MessageList({ messages, isLoading, words = [], onSelect 
                       // what the user sent right after this message (their choice)
                       nextUserText={nextText(i)}
                       onSelect={onSelect}
+                      neighbors={neighbors}
                     />
                   </MessageBoundary>
                   {isRunEnd(i) && !(isLoading && i === messages.length - 1) && (

@@ -61,6 +61,13 @@ function ProfileView({ onClose }) {
   const [closing, setClosing] = useState(false);
 
   useEffect(() => {
+  const el = document.documentElement;
+  el.setAttribute("data-no-chat-focus", "");
+  document.activeElement?.blur?.(); // drop a keyboard that is already open
+  return () => el.removeAttribute("data-no-chat-focus");
+  }, []);
+
+  useEffect(() => {
     let ignore = false;
     setState({ status: "loading", profile: null });
     getProfile()
