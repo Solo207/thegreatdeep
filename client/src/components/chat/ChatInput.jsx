@@ -176,7 +176,7 @@ export default function ChatInput({
         />
       </div>
 
-      <div className="flex h-9 shrink-0 items-center whitespace-nowrap">
+      <div className="flex shrink-0 items-center self-center">
         <EffortPill chat={chat} />
       </div>
 
