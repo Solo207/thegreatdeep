@@ -29,7 +29,7 @@ export const hasOptions = (body) => body && body.effort !== undefined;
 /** What /detail answers with: the options plus the chat's project. */
 export function cleanDetail(data) {
   const d = (Array.isArray(data) ? data[0] : data) || {};
-  const p = d.project ?? d. roughbook;
+  const p = d.project ?? d.roughbook;
   const id = typeof p?.id === "string" ? p.id : "";
   const name = String(p?.name ?? p?.title ?? "").slice(0, 60);
   return { ...cleanOptions(d), project: id && RB_ID_RE.test(id) ? { id, name } : null };
