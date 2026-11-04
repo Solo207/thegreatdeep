@@ -19,22 +19,36 @@ import { useToast } from "../components/toast/toast-context";
 import { useHistory } from "../components/sidebar/history-context";
 import { useRoughbooks } from "../components/roughbooks/roughbooks-context";
 
+// one shared empty list, so "no books yet" doesn't look like a change on every render
+const NO_BOOKS = [];
+
 export default function useChatOptions(chatId) {
   const toast = useToast();
   const { chats = [], pinned = [], refresh } = useHistory();
-  const roughbooks = useRoughbooks();
+  const { books = NO_BOOKS, refresh: refreshBooks, ensureLoaded } = useRoughbooks();
   const stored = useSyncExternalStore(subscribe, () => getOptions(chatId));
   const [loading, setLoading] = useState(() => !isLoaded(chatId));
   const [override, setOverride] = useState(undefined); // shown while a roughbook change is running
 
-  // the chat's roughbook, straight from the history lists
+  // make sure the roughbook list is there, so a chat's roughbook can be matched by name
+  useEffect(() => {
+    if (chatId) ensureLoaded?.();
+  }, [chatId, ensureLoaded]);
+
+  // the chat's roughbook, straight from the history lists; copes with a missing
+  // id by matching the roughbook's name
   const fromHistory = useMemo(() => {
     if (!chatId) return null;
     const c = [...pinned, ...chats].find((x) => x.id === chatId);
-    return c?.rough_id
-      ? { id: c.rough_id, name: typeof c.rough === "string" ? c.rough : "" }
-      : null;
-  }, [chatId, chats, pinned]);
+    if (!c) return null;
+    const rid = c.rough_id ?? c.roughId; // the server sends roughId
+    const name =
+      (typeof c.rough === "string" && c.rough) ||
+      books.find((b) => b.id === rid)?.title ||
+      "";
+    const id = rid || books.find((b) => b.title === name)?.id || null;
+    return id || name ? { id, name } : null;
+  }, [chatId, chats, pinned, books]);
 
   const project = chatId
     ? override !== undefined
@@ -97,26 +111,31 @@ export default function useChatOptions(chatId) {
       const current = project;
       setOverride(next);
       let target = next;
+      let step = "";
       try {
         if (!next) {
-          if (current) await removeChatFromProject(chatId, current); // /rmrb
+          step = "remove"; // /rmrb
+          if (current) await removeChatFromProject(chatId, current);
         } else {
           if (next.isNew) {
-            const id = await createRoughbookId(next.name); // /newrb, no redirect
+            step = "create"; // /newrb, no redirect
+            const id = await createRoughbookId(next.name);
             target = { id, name: next.name };
-            roughbooks.refresh?.();
+            refreshBooks?.();
           }
-          await addChatToProject(chatId, target); // /addchatrb
+          step = "add"; // /addchatrb
+          await addChatToProject(chatId, target);
         }
         putOptions(chatId, { ...getOptions(chatId), project: target });
         await Promise.resolve(refresh()).catch(() => {});
-      } catch {
-        toast("Couldn't change the roughbook");
+      } catch (err) {
+        console.error("Roughbook change failed at", step, err);
+        toast(`Couldn't change the roughbook (${step}${err?.status ? " " + err.status : ""})`);
       } finally {
         setOverride(undefined);
       }
     },
-    [chatId, project, refresh, roughbooks, toast],
+    [chatId, project, refresh, refreshBooks, toast],
   );
 
   return {

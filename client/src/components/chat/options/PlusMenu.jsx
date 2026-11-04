@@ -53,6 +53,11 @@ export default function PlusMenu({ chat }) {
     close();
   };
 
+  const isCurrent = (b) =>
+  options.project &&
+  (options.project.id ? options.project.id === b.id : options.project.name === b.title);
+
+
   return (
     <>
       <button
@@ -156,7 +161,7 @@ export default function PlusMenu({ chat }) {
               {books?.map((b) => (
                 <button key={b.id} type="button" onClick={() => pick(b)} className={row}>
                   <span className="truncate">{b.title}</span>
-                  {options.project?.id === b.id && <Icon d="M20 6 9 17l-5-5" />}
+                  {isCurrent(b) && <Icon d="M20 6 9 17l-5-5" />}
                 </button>
               ))}
 
