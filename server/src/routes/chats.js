@@ -23,9 +23,6 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const isValidText = (t) =>
  typeof t === "string" && t.trim().length > 0 && t.length <= MAX_LEN;
 
-const ID_RE = /^[\w-]{1,100}$/;
-const neighbor = (v) => (typeof v === "string" && ID_RE.test(v) ? { messageId: v } : null);
-
 // n8n may answer at once with status words like [{ "text": "Mulling" }, { "text": "Processing" }]
 function cleanWords(data) {
   const list = Array.isArray(data)
