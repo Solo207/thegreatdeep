@@ -3,7 +3,7 @@ import PopoverMenu from "../../PopoverMenu";
 
 const LEVELS = [
   { id: "low", label: "Low", note: "quick and efficient" },
-  { id: "medium", label: "Medium", note: "balanced depth" },
+  { id: "medium", label: "Medium", note: "best for  details" },
   { id: "high", label: "High", note: "extra thorough" },
 ];
 
