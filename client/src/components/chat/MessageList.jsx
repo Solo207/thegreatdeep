@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState, useMemo } from "react";
 import BotMessage from "./messages/BotMessage";
 import MessageBoundary from "./messages/MessageBoundary";
 import WaitingIndicator from "./WaitingIndicator";
@@ -171,6 +171,17 @@ export default function MessageList({ messages, isLoading, words = [], onSelect 
   const nextText = (i) =>
     messages[i + 1]?.role === "user" ? bodyOf(messages[i + 1]) : null;
 
+  const neighborsById = useMemo(() => {
+  const map = new Map();
+  messages.forEach((m, idx) => {
+    map.set(m.id, {
+      above: messages[idx - 1]?.id ?? null,
+      below: messages[idx + 1]?.id ?? null,
+    });
+  });
+  return map;
+}, [messages]);
+
   return (
     <div className="relative min-h-0 flex-1">
       <div
@@ -209,7 +220,7 @@ export default function MessageList({ messages, isLoading, words = [], onSelect 
                       // what the user sent right after this message (their choice)
                       nextUserText={nextText(i)}
                       onSelect={onSelect}
-                      neighbors={neighbors}
+                      neighbors={neighborsById.get(m.id)}
                     />
                   </MessageBoundary>
                   {isRunEnd(i) && !(isLoading && i === messages.length - 1) && (
