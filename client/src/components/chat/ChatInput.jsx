@@ -18,7 +18,6 @@ export default function ChatInput({
   disabled = false,
   autoFocus = false,
   onFocusChange,
-  compact = false, // one row: [ + ] [ Effort ] [ text ] [ send ]
 }) {
   const [value, setValue] = useState("");
   const ref = useRef(null);
@@ -121,56 +120,27 @@ export default function ChatInput({
     }
   };
 
-  // one copy of the send button, used by both layouts
-  const sendButton = (
-    <button
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={submit}
-      disabled={disabled || !value.trim()}
-      aria-label="Send message"
-      className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg bg-indigo-500 text-white transition-colors hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-500"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="h-5 w-5"
-      >
-        <path d="M12 19V5M5 12l7-7 7 7" />
-      </svg>
-    </button>
-  );
-
+  // one row, always: [ + ] [ Effort ] [ text ] [ send ]
   return (
     <div
       // clicking anywhere in the box (not just the first line) focuses the text
       onClick={(e) => {
         if (!e.target.closest("button")) ref.current?.focus();
       }}
-      className={`w-full cursor-text rounded-2xl border border-zinc-700 bg-zinc-800 shadow-lg transition-colors focus-within:border-zinc-500 ${
-        compact ? "flex items-end gap-2 p-2 pl-4" : "p-3"
-      }`}
+      className="flex w-full cursor-text items-end gap-2 rounded-2xl border border-zinc-700 bg-zinc-800 p-2 pl-3 shadow-lg transition-colors focus-within:border-zinc-500"
     >
-      {/* compact: [ + ] [ Effort ] sit at the left of the single line */}
-      {compact && (
-        <>
-          <PlusMenu chat={chat} />
-          <div className="shrink-0 whitespace-nowrap">
-            <EffortPill chat={chat} />
-          </div>
-        </>
-      )}
+      <PlusMenu chat={chat} />
+      <div className="shrink-0 whitespace-nowrap">
+        <EffortPill chat={chat} />
+      </div>
 
-      <div className={`relative ${compact ? "min-w-0 flex-1 self-center py-1.5" : ""}`}>
+      {/* the wrapper takes the free space; the mirror and the textarea share the same padding so the link highlight lines up */}
+      <div className="relative min-w-0 flex-1">
         {HIGHLIGHT_LINKS && (
           <div
             ref={mirrorRef}
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 overflow-y-hidden whitespace-pre-wrap wrap-break-word px-1 text-transparent"
+            className="pointer-events-none absolute inset-0 overflow-y-hidden whitespace-pre-wrap wrap-break-word px-1 py-1.5 text-transparent"
           >
             {splitLinks(value).map((part, i) =>
               part.href ? (
@@ -203,23 +173,30 @@ export default function ChatInput({
             if (mirrorRef.current) mirrorRef.current.scrollTop = e.currentTarget.scrollTop;
           }}
           placeholder={disabled ? "Waiting for the reply..." : "Ask anything..."}
-          className="relative max-h-50 w-full min-w-0 flex-1 resize-none bg-transparent px-1 text-zinc-100 placeholder-zinc-500 outline-none disabled:cursor-not-allowed disabled:placeholder-zinc-600"
+          className="relative max-h-50 w-full min-w-0 flex-1 resize-none bg-transparent px-1 py-1.5 text-zinc-100 placeholder-zinc-500 outline-none disabled:cursor-not-allowed disabled:placeholder-zinc-600"
         />
       </div>
 
-      {compact ? (
-        // compact: only the send button stays on the right
-        <div className="shrink-0">{sendButton}</div>
-      ) : (
-        // normal layout: + on the left, Effort and send on the right
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <PlusMenu chat={chat} />
-          <div className="flex items-center gap-2">
-            <EffortPill chat={chat} />
-            {sendButton}
-          </div>
-        </div>
-      )}
+      <button
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={submit}
+        disabled={disabled || !value.trim()}
+        aria-label="Send message"
+        className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg bg-indigo-500 text-white transition-colors hover:bg-indigo-400 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-500"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-5 w-5"
+        >
+          <path d="M12 19V5M5 12l7-7 7 7" />
+        </svg>
+      </button>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import PopoverMenu from "../../PopoverMenu";
-import { useRoughbooks } from "../../roughbooks/roughbooks-context";
+import { getRoughbooks } from "../../../lib/api/rb";
 import { searchInfo } from "../../../lib/chatOptions";
 
 const keepFocus = (e) => e.preventDefault(); // tapping + shouldn't close the keyboard
@@ -21,15 +21,33 @@ const Icon = ({ d }) => (
   </svg>
 );
 
+// /rb may answer with a plain list or wrap it
+const listOf = (r) => (Array.isArray(r) ? r : (r?.roughbooks ?? r?.books ?? []));
+
 export default function PlusMenu({ chat }) {
   const { options, loading, isDraft } = chat;
-  const { books = [] } = useRoughbooks();
   const [menu, setMenu] = useState(null);
   const [view, setView] = useState("main");
+  const [books, setBooks] = useState(null); // null = still loading
+  const [failed, setFailed] = useState(false);
 
   const close = () => setMenu(null);
-  const pick = (project) => {
-    chat.setProject(project);
+
+  const loadBooks = () => {
+    setBooks(null);
+    setFailed(false);
+    getRoughbooks()
+      .then((r) => setBooks(listOf(r)))
+      .catch(() => setFailed(true));
+  };
+
+  const openBooks = () => {
+    setView("books");
+    loadBooks();
+  };
+
+  const pick = (book) => {
+    chat.setProject(book ? { id: book.id, name: book.title } : null);
     close();
   };
 
@@ -53,13 +71,18 @@ export default function PlusMenu({ chat }) {
       </button>
 
       {menu && (
-        // key = view, so the menu measures itself again when its content changes
-        <PopoverMenu key={view} rect={menu.rect} width={264} onClose={close}>
+        // the key changes with the view and with loading, so the menu measures itself again
+        <PopoverMenu
+          key={`${view}-${books === null && !failed ? "wait" : "ready"}`}
+          rect={menu.rect}
+          width={264}
+          onClose={close}
+        >
           {view === "main" ? (
             <div className="p-1">
               <p className="px-3 pb-1 pt-2 text-xs text-zinc-500">Applies to this chat only</p>
 
-              <button type="button" onClick={() => setView("projects")} className={row}>
+              <button type="button" onClick={openBooks} className={row}>
                 <span className="min-w-0">
                   {options.project ? "Change roughbook" : "Add roughbook"}
                   {options.project && (
@@ -105,15 +128,26 @@ export default function PlusMenu({ chat }) {
                 </span>
               </button>
 
-              {books.map((b) => (
-                <button key={b.id} type="button" onClick={() => pick({ id: b.id, name: b.title })} className={row}>
+              {failed && (
+                <div className="px-3 py-2 text-xs text-red-400">
+                  Couldn't load your roughbooks.{" "}
+                  <button type="button" onClick={loadBooks} className="underline">
+                    Try again
+                  </button>
+                </div>
+              )}
+
+              {!failed && books === null && <p className="px-3 py-2 text-xs text-zinc-500">Loading…</p>}
+
+              {books?.map((b) => (
+                <button key={b.id} type="button" onClick={() => pick(b)} className={row}>
                   <span className="truncate">{b.title}</span>
                   {options.project?.id === b.id && <Icon d="M20 6 9 17l-5-5" />}
                 </button>
               ))}
 
-              {books.length === 0 && (
-                <p className="px-3 py-2 text-xs text-zinc-500">No roughbook yet. Create a roughbook first.</p>
+              {books && books.length === 0 && (
+                <p className="px-3 py-2 text-xs text-zinc-500">No roughbooks yet. Create one from the sidebar.</p>
               )}
 
               {options.project && (

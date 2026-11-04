@@ -21,7 +21,7 @@ export default function EffortPill({ chat }) {
         onClick={(e) => setMenu({ rect: e.currentTarget.getBoundingClientRect() })}
         className="shrink-0 whitespace-nowrap rounded-full bg-zinc-700/60 px-2.5 py-1 text-xs text-zinc-300 transition-colors hover:bg-zinc-700 disabled:opacity-40"
       >
-        Effort: {current.label}
+        <span className="hidden min-[420px]:inline">Effort: </span>{current.label}
       </button>
 
       {menu && (
