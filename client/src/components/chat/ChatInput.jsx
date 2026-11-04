@@ -26,10 +26,9 @@ export default function ChatInput({
 
   const { chatId } = useParams(); // undefined on /new and /roughbook/:rbId
   const chat = useChatOptions(chatId);
-  const inputRef = useRef(null);        // find this line: the ref your textarea uses
 
-  usePasteAnywhere(inputRef);           // 2. here, right after the ref exists
-
+  // pasting anywhere on the page goes into the box
+  usePasteAnywhere(ref);
 
   // phones and tablets: Enter makes a new line, the arrow button sends
   const isTouch = useMediaQuery("(pointer: coarse)");
