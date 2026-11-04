@@ -13,6 +13,7 @@ import {
   getPending,
 } from "../lib/pending.js";
 import { cleanOptions, hasOptions } from "../lib/detail.js";
+import { neighbor } from "../lib/neighbors.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -174,6 +175,8 @@ router.post("/:chatId/messages", async (req, res) => {
         ? `${process.env.PUBLIC_BASE_URL}/api/internal/messages`
         : undefined,
       ...(hasOptions(req.body) ? cleanOptions(req.body) : {}),
+      above: neighbor(req.body?.above),
+      below: neighbor(req.body?.below),
     });
 
     if (data?.message) {

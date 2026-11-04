@@ -53,13 +53,19 @@ export function getChat(chatId) {
 
 // Send a message. `selection` is set when the user tapped a button or list row:
 // { id, source: "buttons" | "list", messageId }
-export async function sendMessage(chatId, content, selection = null) {
+// `neighbors` is { above, below }: the messages around the one being answered,
+// worked out BEFORE the new message was added to the list. It can be null or
+// empty (a brand new chat has nothing before its first message).
+export async function sendMessage(chatId, content, selection = null, neighbors = null) {
+  const { above = null, below = null } = neighbors ?? {};
   const result = await request(`/${chatId}/messages`, {
     method: "POST",
     body: JSON.stringify({
       ...optionsPayload(chatId),
       content,
       selection,
+      above,
+      below,
     }),
   });
   // only after the send succeeded, so a failed send keeps the project pending

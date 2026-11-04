@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getChat, sendMessage } from "../../../lib/api/chats";
 import { useEvents } from "../../../components/events/events-context";
+import { neighborsFor } from "../../../lib/neighbors";
 
 // true: the input is locked until n8n sends "done". false: you can keep sending.
 const LOCK_INPUT_WHILE_WAITING = true;
@@ -29,7 +30,7 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
   const [isWaiting, setIsWaiting] = useState(Boolean(firstMessage));
   const [words, setWords] = useState([]);
   const [sendError, setSendError] = useState(null);
-  const [failed, setFailed] = useState(null); // { text, selection } of the send that failed
+  const [failed, setFailed] = useState(null); // { text, selection, neighbors } of the send that failed
 
   const startedRef = useRef(false);
   const lastSentRef = useRef(null);
@@ -80,7 +81,7 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
         setIsWaiting(false);
         setWords([]);
         setSendError("failed");
-        setFailed(lastSentRef.current); // so Retry can resend it
+        setFailed(lastSentRef.current); // so Retry can resend it (neighbours included)
       }
     });
   }, [subscribe, chatId]);
@@ -89,7 +90,8 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
   useEffect(() => {
     if (!firstMessage || startedRef.current) return;
     startedRef.current = true;
-    deliver(firstMessage);
+    // a brand new chat: nothing came before this message, so there are no neighbours
+    deliver(firstMessage, null, null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -99,13 +101,13 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
   };
 
   // hand a message to the server
-  async function deliver(text, selection = null) {
-    lastSentRef.current = { text, selection };
+  async function deliver(text, selection = null, neighbors = null) {
+    lastSentRef.current = { text, selection, neighbors };
     setIsWaiting(true);
     setWords([]);
     setSendError(null);
     try {
-      const result = await sendMessage(chatId, text, selection);
+      const result = await sendMessage(chatId, text, selection, neighbors);
       if (result.message) {
         // old synchronous workflow: the reply is already here
         setMessages((prev) => [...prev, result.message]);
@@ -117,7 +119,7 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
       }
     } catch (err) {
       setSendError(err.kind ?? "failed");
-      setFailed({ text, selection });
+      setFailed({ text, selection, neighbors });
       setIsWaiting(false);
     }
   }
@@ -126,16 +128,23 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
   const send = (text, selection = null) => {
     if (LOCK_INPUT_WHILE_WAITING && isWaiting) return;
     setFailed(null);
+
+    // work out the neighbours BEFORE the new message is added to the list,
+    // otherwise the last message would be the one we are sending
+    const neighbors = neighborsFor(messages);
+
     setMessages((prev) => [...prev, userMessage(text)]);
-    deliver(text, selection);
+    deliver(text, selection, neighbors);
   };
 
   // resend the message that failed (its bubble is already on screen)
   const retrySend = () => {
     if (!failed) return;
-    const { text, selection } = failed;
+    const { text, selection, neighbors } = failed;
     setFailed(null);
-    deliver(text, selection);
+    // reuse the neighbours from the original send: the failed bubble is already
+    // in the list now, so computing them again would pick up that bubble
+    deliver(text, selection, neighbors);
   };
 
   return {
