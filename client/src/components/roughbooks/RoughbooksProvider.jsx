@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getRoughbooks } from "../../lib/api/rb";
 import { RoughbooksContext } from "./roughbooks-context";
 
+const REFRESH_MS = 60_000;
+
 export default function RoughbooksProvider({ children }) {
   const [books, setBooks] = useState([]);
   const [status, setStatus] = useState("idle"); // idle | loading | ready | error
@@ -26,6 +28,15 @@ export default function RoughbooksProvider({ children }) {
       setStatus((s) => (s === "ready" ? s : "error"));
     }
   }, []);
+
+  // keep the list warm: load at startup, then refresh every minute while the tab is visible
+  useEffect(() => {
+    refresh();
+    const t = setInterval(() => {
+      if (document.visibilityState === "visible") refresh();
+    }, REFRESH_MS);
+    return () => clearInterval(t);
+  }, [refresh]);
 
   // something else changed the roughbooks (for example a new chat's roughbook was set)
   useEffect(() => {

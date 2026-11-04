@@ -105,6 +105,11 @@ export default function useChatOptions(chatId) {
       // /new chat: only remember it; nothing is called until after /chat-message
       if (!chatId) {
         putOptions(null, { ...getOptions(null), project: next });
+        toast(
+          next
+            ? `"${next.name}" will be set after you send your first message`
+            : "Roughbook cleared",
+        );
         return;
       }
 
@@ -127,6 +132,15 @@ export default function useChatOptions(chatId) {
           await addChatToProject(chatId, target);
         }
         putOptions(chatId, { ...getOptions(chatId), project: target });
+        toast(
+          !next
+            ? `Removed from "${current?.name || "roughbook"}"`
+            : next.isNew
+              ? `Created "${target.name}" and added this chat`
+              : current
+                ? `Moved to "${target.name}"`
+                : `Added to "${target.name}"`,
+        );
         await Promise.resolve(refresh()).catch(() => {});
       } catch (err) {
         console.error("Roughbook change failed at", step, err);
