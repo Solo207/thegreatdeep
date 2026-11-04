@@ -12,12 +12,6 @@ export default function RoughbooksProvider({ children }) {
     statusRef.current = status;
   }, [status]);
 
-  useEffect(() => {
-  const onRefresh = () => Promise.resolve(refresh()).catch(() => {});
-  window.addEventListener("sidebar:refresh", onRefresh);
-  return () => window.removeEventListener("sidebar:refresh", onRefresh);
-}, [refresh]);
-
   // always asks n8n (the old list stays on screen meanwhile)
   const refresh = useCallback(async () => {
     const id = ++latest.current;
@@ -32,6 +26,13 @@ export default function RoughbooksProvider({ children }) {
       setStatus((s) => (s === "ready" ? s : "error"));
     }
   }, []);
+
+  // something else changed the roughbooks (for example a new chat's roughbook was set)
+  useEffect(() => {
+    const onRefresh = () => Promise.resolve(refresh()).catch(() => {});
+    window.addEventListener("sidebar:refresh", onRefresh);
+    return () => window.removeEventListener("sidebar:refresh", onRefresh);
+  }, [refresh]);
 
   // asks only if the list was never loaded (or failed last time)
   const ensureLoaded = useCallback(() => {
