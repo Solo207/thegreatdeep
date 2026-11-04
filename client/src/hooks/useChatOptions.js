@@ -72,7 +72,7 @@ export default function useChatOptions(chatId) {
         refresh().catch(() => {});
       } catch {
         putOptions(chatId, prev);
-        toast("Couldn't change the project");
+        toast("Couldn't change the roughbook");
       }
     },
     [chatId, refresh, toast],

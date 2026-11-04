@@ -61,7 +61,7 @@ export default function PlusMenu({ chat }) {
 
               <button type="button" onClick={() => setView("projects")} className={row}>
                 <span className="min-w-0">
-                  {options.project ? "Change project" : "Add project"}
+                  {options.project ? "Change roughbook" : "Add roughbook"}
                   {options.project && (
                     <span className="block truncate text-xs text-zinc-500">{options.project.name}</span>
                   )}
@@ -98,7 +98,7 @@ export default function PlusMenu({ chat }) {
               <button type="button" onClick={() => setView("main")} className={`${row} justify-start text-zinc-400`}>
                 <Icon d="m15 18-6-6 6-6" />
                 <span>
-                  Project
+                  Roughbook
                   {isDraft && (
                     <span className="block text-xs text-zinc-500">Added once you send your first message</span>
                   )}
@@ -113,12 +113,12 @@ export default function PlusMenu({ chat }) {
               ))}
 
               {books.length === 0 && (
-                <p className="px-3 py-2 text-xs text-zinc-500">No projects yet. Create a roughbook first.</p>
+                <p className="px-3 py-2 text-xs text-zinc-500">No roughbook yet. Create a roughbook first.</p>
               )}
 
               {options.project && (
                 <button type="button" onClick={() => pick(null)} className={`${row} text-red-400`}>
-                  Remove from project
+                  Remove from roughbook
                 </button>
               )}
             </div>
