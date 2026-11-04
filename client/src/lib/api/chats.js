@@ -58,12 +58,13 @@ export async function sendMessage(chatId, content, selection = null, neighbors =
   const result = await request(`/${chatId}/messages`, {
     method: "POST",
     body: JSON.stringify({
-      message: content,
-      selection,
-      above: neighbors.above ?? null,
-      below: neighbors.below ?? null,
-      ...optionsPayload(chatId),
-    }),
+  content,            // the key your server probably reads
+  message: content,   // …and n8n's name for it
+  selection,
+  above: neighbors.above ?? null,
+  below: neighbors.below ?? null,
+  ...optionsPayload(chatId),
+}),
   });
   // only after the send succeeded, so a failed send keeps the project pending
   const pending = takePendingProject(chatId);

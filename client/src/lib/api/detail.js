@@ -29,8 +29,12 @@ export const removeChatFromProject = (chatId, p) =>
 
 // /newrb. Only creates it: nothing here navigates anywhere.
 export async function createRoughbookId(name) {
-  const r = await createRoughbook(name); // ⚠ MATCH to createRoughbook's argument
-  const id = r?.id ?? r?.roughbook?.id;
+  const r = await createRoughbook(name); // ⚠ match to createRoughbook's argument
+  console.log("createRoughbook answered:", r); // temporary: shows the real shape
+  const id =
+    typeof r === "string" || typeof r === "number"
+      ? String(r)
+      : (r?.id ?? r?.roughbook?.id ?? r?.book?.id ?? r?.data?.id ?? r?.rbId);
   if (!id) throw new Error("No roughbook id");
   return id;
 }

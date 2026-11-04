@@ -25,7 +25,7 @@ const NO_BOOKS = [];
 export default function useChatOptions(chatId) {
   const toast = useToast();
   const { chats = [], pinned = [], refresh } = useHistory();
-  const { books = NO_BOOKS, refresh: refreshBooks, ensureLoaded } = useRoughbooks();
+  const { books = NO_BOOKS, refresh: refreshBooks, ensureLoaded, add: addBook } = useRoughbooks();
   const stored = useSyncExternalStore(subscribe, () => getOptions(chatId));
   const [loading, setLoading] = useState(() => !isLoaded(chatId));
   const [override, setOverride] = useState(undefined); // shown while a roughbook change is running
@@ -100,57 +100,58 @@ export default function useChatOptions(chatId) {
    *      = { name, isNew: true } a roughbook to create
    *      = null                  take the chat out of its roughbook
    */
-  const setProject = useCallback(
-    async (next) => {
-      // /new chat: only remember it; nothing is called until after /chat-message
-      if (!chatId) {
-        putOptions(null, { ...getOptions(null), project: next });
-        toast(
-          next
-            ? `"${next.name}" will be set after you send your first message`
-            : "Roughbook cleared",
-        );
-        return;
-      }
+const setProject = useCallback(
+  async (next) => {
+    // /new chat: only remember it; nothing is called until after /chat-message
+    if (!chatId) {
+      putOptions(null, { ...getOptions(null), project: next });
+      toast(
+        next
+          ? `"${next.name}" will be set after you send your first message`
+          : "Roughbook cleared",
+      );
+      return;
+    }
 
-      const current = project;
-      setOverride(next);
-      let target = next;
-      let step = "";
-      try {
-        if (!next) {
-          step = "remove"; // /rmrb
-          if (current) await removeChatFromProject(chatId, current);
-        } else {
-          if (next.isNew) {
-            step = "create"; // /newrb, no redirect
-            const id = await createRoughbookId(next.name);
-            target = { id, name: next.name };
-            refreshBooks?.();
-          }
-          step = "add"; // /addchatrb
-          await addChatToProject(chatId, target);
+    const current = project;
+    setOverride(next);
+    let target = next;
+    let step = "";
+    try {
+      if (!next) {
+        step = "remove"; // /rmrb
+        if (current) await removeChatFromProject(chatId, current);
+      } else {
+        if (next.isNew) {
+          step = "create"; // /newrb, no redirect
+          const id = await createRoughbookId(next.name);
+          target = { id, name: next.name };
+          addBook?.({ id, title: next.name }); // shows in the sidebar at once
+          refreshBooks?.();
         }
-        putOptions(chatId, { ...getOptions(chatId), project: target });
-        toast(
-          !next
-            ? `Removed from "${current?.name || "roughbook"}"`
-            : next.isNew
-              ? `Created "${target.name}" and added this chat`
-              : current
-                ? `Moved to "${target.name}"`
-                : `Added to "${target.name}"`,
-        );
-        await Promise.resolve(refresh()).catch(() => {});
-      } catch (err) {
-        console.error("Roughbook change failed at", step, err);
-        toast(`Couldn't change the roughbook (${step}${err?.status ? " " + err.status : ""})`);
-      } finally {
-        setOverride(undefined);
+        step = "add"; // /addchatrb
+        await addChatToProject(chatId, target);
       }
-    },
-    [chatId, project, refresh, refreshBooks, toast],
-  );
+      putOptions(chatId, { ...getOptions(chatId), project: target });
+      toast(
+        !next
+          ? `Removed from "${current?.name || "roughbook"}"`
+          : next.isNew
+            ? `Created "${target.name}" and added this chat`
+            : current
+              ? `Moved to "${target.name}"`
+              : `Added to "${target.name}"`,
+      );
+      await Promise.resolve(refresh()).catch(() => {});
+    } catch (err) {
+      console.error("Roughbook change failed at", step, err);
+      toast(`Couldn't change the roughbook (${step}${err?.status ? " " + err.status : ""})`);
+    } finally {
+      setOverride(undefined);
+    }
+  },
+  [chatId, project, refresh, refreshBooks, addBook, toast],
+);
 
   return {
     options,
