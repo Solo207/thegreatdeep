@@ -129,7 +129,7 @@ export default function ChatInput({
       }}
       className="flex w-full cursor-text items-end gap-2 rounded-2xl border border-zinc-700 bg-zinc-800 p-2 pl-3 shadow-lg transition-colors focus-within:border-zinc-500"
     >
-      <div className="flex h-9 shrink-0 items-center">
+      <div className="flex shrink-0 items-center self-center">
         <PlusMenu chat={chat} />
       </div>
 
