@@ -1,5 +1,6 @@
 import { useState } from "react";
 import PopoverMenu from "../../PopoverMenu";
+import NameRoughbookDialog from "./NameRoughbookDialog";
 import { getRoughbooks } from "../../../lib/api/rb";
 import { searchInfo } from "../../../lib/chatOptions";
 
@@ -30,6 +31,7 @@ export default function PlusMenu({ chat }) {
   const [view, setView] = useState("main");
   const [books, setBooks] = useState(null); // null = still loading
   const [failed, setFailed] = useState(false);
+  const [naming, setNaming] = useState(false);
 
   const close = () => setMenu(null);
 
@@ -128,6 +130,18 @@ export default function PlusMenu({ chat }) {
                 </span>
               </button>
 
+              <button
+                type="button"
+                onClick={() => {
+                  close();
+                  setNaming(true);
+                }}
+                className={row}
+              >
+                <span>New roughbook</span>
+                <Icon d="M12 5v14M5 12h14" />
+              </button>
+
               {failed && (
                 <div className="px-3 py-2 text-xs text-red-400">
                   Couldn't load your roughbooks.{" "}
@@ -158,6 +172,21 @@ export default function PlusMenu({ chat }) {
             </div>
           )}
         </PopoverMenu>
+      )}
+
+      {naming && (
+        // clicks inside the dialog must not reach the chat box's "click anywhere focuses the text"
+        // handler, or it would pull the cursor out of the name field ("contents" adds no layout box)
+        <div className="contents" onClick={(e) => e.stopPropagation()}>
+          <NameRoughbookDialog
+            note={isDraft ? "Created after you send your first message" : ""}
+            onCreate={(name) => {
+              chat.setProject({ name, isNew: true });
+              setNaming(false);
+            }}
+            onCancel={() => setNaming(false)}
+          />
+        </div>
       )}
     </>
   );

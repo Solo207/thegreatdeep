@@ -48,6 +48,12 @@ export default function HistoryProvider({ children }) {
     [subscribe, refresh]
   );
 
+  useEffect(() => {
+  const onRefresh = () => Promise.resolve(refresh()).catch(() => {});
+  window.addEventListener("sidebar:refresh", onRefresh);
+  return () => window.removeEventListener("sidebar:refresh", onRefresh);
+}, [refresh]);
+
   return (
     <HistoryContext.Provider value={{ chats, pinned, hasMore, status, refresh, retry }}>
       {children}

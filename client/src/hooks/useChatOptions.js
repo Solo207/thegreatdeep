@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import {
   addChatToProject,
+  createRoughbookId,
   getChatDetail,
   removeChatFromProject,
   saveChatDetail,
@@ -16,14 +17,34 @@ import {
 } from "../lib/chatOptions";
 import { useToast } from "../components/toast/toast-context";
 import { useHistory } from "../components/sidebar/history-context";
+import { useRoughbooks } from "../components/roughbooks/roughbooks-context";
 
 export default function useChatOptions(chatId) {
   const toast = useToast();
-  const { refresh } = useHistory();
-  const options = useSyncExternalStore(subscribe, () => getOptions(chatId));
+  const { chats = [], pinned = [], refresh } = useHistory();
+  const roughbooks = useRoughbooks();
+  const stored = useSyncExternalStore(subscribe, () => getOptions(chatId));
   const [loading, setLoading] = useState(() => !isLoaded(chatId));
+  const [override, setOverride] = useState(undefined); // shown while a roughbook change is running
 
-  // Read the saved values from /detail once per chat
+  // the chat's roughbook, straight from the history lists
+  const fromHistory = useMemo(() => {
+    if (!chatId) return null;
+    const c = [...pinned, ...chats].find((x) => x.id === chatId);
+    return c?.rough_id
+      ? { id: c.rough_id, name: typeof c.rough === "string" ? c.rough : "" }
+      : null;
+  }, [chatId, chats, pinned]);
+
+  const project = chatId
+    ? override !== undefined
+      ? override
+      : (fromHistory ?? stored.project ?? null)
+    : (stored.project ?? null);
+
+  const options = useMemo(() => ({ ...stored, project }), [stored, project]);
+
+  // read the saved search + effort values from n8n once per chat
   useEffect(() => {
     if (isLoaded(chatId)) {
       setLoading(false);
@@ -35,8 +56,9 @@ export default function useChatOptions(chatId) {
       .then((detail) => {
         if (ignore) return;
         markLoaded(chatId);
-        if (chatId) putOptions(chatId, detail);
-        else setDraftDefaults(detail);
+        const { webSearch, driveSearch, effort } = detail;
+        if (chatId) putOptions(chatId, { ...getOptions(chatId), webSearch, driveSearch, effort });
+        else setDraftDefaults({ webSearch, driveSearch, effort });
       })
       .catch(() => {})
       .finally(() => !ignore && setLoading(false));
@@ -59,23 +81,42 @@ export default function useChatOptions(chatId) {
     [chatId, toast],
   );
 
+  /**
+   * next = { id, name }          an existing roughbook
+   *      = { name, isNew: true } a roughbook to create
+   *      = null                  take the chat out of its roughbook
+   */
   const setProject = useCallback(
-    async (project) => {
-      const prev = getOptions(chatId);
-      putOptions(chatId, { ...prev, project });
-      if (!chatId) return; // empty chat: wait for the first question
+    async (next) => {
+      // /new chat: only remember it; nothing is called until after /chat-message
+      if (!chatId) {
+        putOptions(null, { ...getOptions(null), project: next });
+        return;
+      }
+
+      const current = project;
+      setOverride(next);
+      let target = next;
       try {
-        if (prev.project && prev.project.id !== project?.id) {
-          await removeChatFromProject(chatId, prev.project);
+        if (!next) {
+          if (current) await removeChatFromProject(chatId, current); // /rmrb
+        } else {
+          if (next.isNew) {
+            const id = await createRoughbookId(next.name); // /newrb, no redirect
+            target = { id, name: next.name };
+            roughbooks.refresh?.();
+          }
+          await addChatToProject(chatId, target); // /addchatrb
         }
-        if (project) await addChatToProject(chatId, project);
-        refresh().catch(() => {});
+        putOptions(chatId, { ...getOptions(chatId), project: target });
+        await Promise.resolve(refresh()).catch(() => {});
       } catch {
-        putOptions(chatId, prev);
         toast("Couldn't change the roughbook");
+      } finally {
+        setOverride(undefined);
       }
     },
-    [chatId, refresh, toast],
+    [chatId, project, refresh, roughbooks, toast],
   );
 
   return {

@@ -12,6 +12,12 @@ export default function RoughbooksProvider({ children }) {
     statusRef.current = status;
   }, [status]);
 
+  useEffect(() => {
+  const onRefresh = () => Promise.resolve(refresh()).catch(() => {});
+  window.addEventListener("sidebar:refresh", onRefresh);
+  return () => window.removeEventListener("sidebar:refresh", onRefresh);
+}, [refresh]);
+
   // always asks n8n (the old list stays on screen meanwhile)
   const refresh = useCallback(async () => {
     const id = ++latest.current;

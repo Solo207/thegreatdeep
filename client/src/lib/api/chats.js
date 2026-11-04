@@ -1,6 +1,6 @@
 import { unwrap } from "./http";
 import { adoptDraft, optionsPayload, takePendingProject } from "../chatOptions";
-import { addChatToProject } from "./detail";
+import { applyPendingProject } from "./detail";
 
 // The only file that calls /api/chats. Pages and hooks use these functions.
 
@@ -67,7 +67,7 @@ export async function sendMessage(chatId, content, selection = null, neighbors =
   });
   // only after the send succeeded, so a failed send keeps the project pending
   const pending = takePendingProject(chatId);
-  if (pending) addChatToProject(chatId, pending).catch(() => {});
+  if (pending) applyPendingProject(chatId, pending); // only after the send succeeded
   return result;
 }
 
