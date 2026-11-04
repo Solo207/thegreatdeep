@@ -51,6 +51,15 @@ const SETTINGS_ICONS = {
   ),
 };
 
+// icon + text in one row; it goes inside MenuItem's children, so it works
+// even though MenuItem ignores an `icon` prop
+const Label = ({ icon, className = "", children }) => (
+  <span className={`flex items-center gap-2.5 ${className}`}>
+    {icon}
+    <span>{children}</span>
+  </span>
+);
+
 export default function SettingsMenu({ onNavigate }) {
   const navigate = useNavigate();
   const [, setParams] = useSearchParams();
@@ -117,27 +126,25 @@ export default function SettingsMenu({ onNavigate }) {
       </button>
 
       {menu && (
-  <PopoverMenu rect={menu.rect} width={220} onClose={() => setMenu(null)}>
-    <MenuItem icon={SETTINGS_ICONS.profile} onClick={openProfile}>
-      Profile
-    </MenuItem>
-    <MenuItem icon={SETTINGS_ICONS.edit} onClick={askChange}>
-      Change user details
-    </MenuItem>
-    <MenuItem
-      icon={SETTINGS_ICONS.logout}
-      danger
-      onClick={() => {
-        setMenu(null);
-        setConfirmSignOut(true);
-      }}
-    >
-      Sign out
-    </MenuItem>
-  </PopoverMenu>
-)}
+        <PopoverMenu rect={menu.rect} width={220} onClose={() => setMenu(null)}>
+          <MenuItem onClick={openProfile}>
+            <Label icon={SETTINGS_ICONS.profile}>Profile</Label>
+          </MenuItem>
+          <MenuItem onClick={askChange}>
+            <Label icon={SETTINGS_ICONS.edit}>Change user details</Label>
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              setMenu(null);
+              setConfirmSignOut(true);
+            }}
+          >
+            <Label icon={SETTINGS_ICONS.logout} className="text-red-400">Sign out</Label>
+          </MenuItem>
+        </PopoverMenu>
+      )}
 
-{confirming && (
+      {confirming && (
         <ConfirmDialog
           heading="Change user details?"
           message={CHANGE_DETAILS_TEXT}
@@ -162,4 +169,4 @@ export default function SettingsMenu({ onNavigate }) {
       )}
     </>
   );
-  }
+}
