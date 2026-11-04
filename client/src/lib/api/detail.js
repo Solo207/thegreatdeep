@@ -21,8 +21,11 @@ export async function saveChatDetail(chatId, { webSearch, driveSearch, effort })
 }
 
 // ⚠ MATCH THESE TWO LINES to how ChatActions.jsx calls addChatToRough / removeChatFromRough
-export const addChatToProject = (chatId, p) => addChatToRough(chatId, p.id, p.name); // /addchatrb
-export const removeChatFromProject = (chatId, p) => removeChatFromRough(chatId, p.id, p.name); // /rmrb
+export const addChatToProject = (chatId, p) =>
+  addChatToRough(chatId, { id: p.id, title: p.name }); // /addchatrb
+
+export const removeChatFromProject = (chatId, p) =>
+  removeChatFromRough(chatId, { id: p.id, name: p.name }); // /rmrb
 
 // /newrb. Only creates it: nothing here navigates anywhere.
 export async function createRoughbookId(name) {
