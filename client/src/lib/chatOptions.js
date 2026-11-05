@@ -7,8 +7,13 @@ const pendingProject = new Map(); // chatId -> project waiting for the first mes
 const listeners = new Set();
 let draftDefaults = DEFAULT_OPTIONS;
 
+const adoptedAt = new Map(); // chatId -> when its values came from the draft
+
 const emit = () => listeners.forEach((fn) => fn());
 const keyOf = (chatId) => chatId || DRAFT;
+
+export const justAdopted = (chatId) =>
+  Boolean(chatId) && Date.now() - (adoptedAt.get(chatId) ?? 0) < 60_000;
 
 export const subscribe = (fn) => {
   listeners.add(fn);

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
   addChatToProject,
   createRoughbookId,
@@ -9,6 +9,7 @@ import {
 import {
   getOptions,
   isLoaded,
+  justAdopted,
   markLoaded,
   putOptions,
   setDraftDefaults,
@@ -58,31 +59,39 @@ export default function useChatOptions(chatId) {
 
   const options = useMemo(() => ({ ...stored, project }), [stored, project]);
 
-  // read the saved search + effort values from n8n once per chat
-  useEffect(() => {
-    if (isLoaded(chatId)) {
-      setLoading(false);
-      return;
-    }
-    let ignore = false;
-    setLoading(true);
-    getChatDetail(chatId)
+  const lastEdit = useRef(0); // when the user last changed something here
+  const lastPull = useRef(0);
+
+  const pull = useCallback(() => {
+    if (justAdopted(chatId)) return; // n8n may not have saved this new chat's values yet
+    const startedAt = Date.now();
+    lastPull.current = startedAt;
+    getChatDetail(chatId) // query "/detail", type "get"; no chatId means the defaults for a new chat
       .then((detail) => {
-        if (ignore) return;
+        if (lastEdit.current > startedAt) return; // the user changed something while this was on its way
         markLoaded(chatId);
         const { webSearch, driveSearch, effort } = detail;
         if (chatId) putOptions(chatId, { ...getOptions(chatId), webSearch, driveSearch, effort });
         else setDraftDefaults({ webSearch, driveSearch, effort });
       })
       .catch(() => {})
-      .finally(() => !ignore && setLoading(false));
-    return () => {
-      ignore = true;
-    };
+      .finally(() => setLoading(false));
   }, [chatId]);
+
+  // every time /new or a chat opens, and when you come back to the tab
+  useEffect(() => {
+    setLoading(!isLoaded(chatId));
+    pull();
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && Date.now() - lastPull.current > 20_000) pull();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [chatId, pull]);
 
   const save = useCallback(
     (patch) => {
+      lastEdit.current = Date.now();
       const prev = getOptions(chatId);
       const next = withSearch(prev, patch);
       putOptions(chatId, next);
@@ -100,58 +109,58 @@ export default function useChatOptions(chatId) {
    *      = { name, isNew: true } a roughbook to create
    *      = null                  take the chat out of its roughbook
    */
-const setProject = useCallback(
-  async (next) => {
-    // /new chat: only remember it; nothing is called until after /chat-message
-    if (!chatId) {
-      putOptions(null, { ...getOptions(null), project: next });
-      toast(
-        next
-          ? `"${next.name}" will be set after you send your first message`
-          : "Roughbook cleared",
-      );
-      return;
-    }
-
-    const current = project;
-    setOverride(next);
-    let target = next;
-    let step = "";
-    try {
-      if (!next) {
-        step = "remove"; // /rmrb
-        if (current) await removeChatFromProject(chatId, current);
-      } else {
-        if (next.isNew) {
-          step = "create"; // /newrb, no redirect
-          const id = await createRoughbookId(next.name);
-          target = { id, name: next.name };
-          addBook?.({ id, title: next.name }); // shows in the sidebar at once
-          refreshBooks?.();
-        }
-        step = "add"; // /addchatrb
-        await addChatToProject(chatId, target);
+  const setProject = useCallback(
+    async (next) => {
+      // /new chat: only remember it; nothing is called until after /chat-message
+      if (!chatId) {
+        putOptions(null, { ...getOptions(null), project: next });
+        toast(
+          next
+            ? `"${next.name}" will be set after you send your first message`
+            : "Roughbook cleared",
+        );
+        return;
       }
-      putOptions(chatId, { ...getOptions(chatId), project: target });
-      toast(
-        !next
-          ? `Removed from "${current?.name || "roughbook"}"`
-          : next.isNew
-            ? `Created "${target.name}" and added this chat`
-            : current
-              ? `Moved to "${target.name}"`
-              : `Added to "${target.name}"`,
-      );
-      await Promise.resolve(refresh()).catch(() => {});
-    } catch (err) {
-      console.error("Roughbook change failed at", step, err);
-      toast(`Couldn't change the roughbook (${step}${err?.status ? " " + err.status : ""})`);
-    } finally {
-      setOverride(undefined);
-    }
-  },
-  [chatId, project, refresh, refreshBooks, addBook, toast],
-);
+
+      const current = project;
+      setOverride(next);
+      let target = next;
+      let step = "";
+      try {
+        if (!next) {
+          step = "remove"; // /rmrb
+          if (current) await removeChatFromProject(chatId, current);
+        } else {
+          if (next.isNew) {
+            step = "create"; // /newrb, no redirect
+            const id = await createRoughbookId(next.name);
+            target = { id, name: next.name };
+            addBook?.({ id, title: next.name }); // shows in the sidebar at once
+            refreshBooks?.();
+          }
+          step = "add"; // /addchatrb
+          await addChatToProject(chatId, target);
+        }
+        putOptions(chatId, { ...getOptions(chatId), project: target });
+        toast(
+          !next
+            ? `Removed from "${current?.name || "roughbook"}"`
+            : next.isNew
+              ? `Created "${target.name}" and added this chat`
+              : current
+                ? `Moved to "${target.name}"`
+                : `Added to "${target.name}"`,
+        );
+        await Promise.resolve(refresh()).catch(() => {});
+      } catch (err) {
+        console.error("Roughbook change failed at", step, err);
+        toast(`Couldn't change the roughbook (${step}${err?.status ? " " + err.status : ""})`);
+      } finally {
+        setOverride(undefined);
+      }
+    },
+    [chatId, project, refresh, refreshBooks, addBook, toast],
+  );
 
   return {
     options,
