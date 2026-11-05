@@ -125,7 +125,7 @@ export default function ChatInput({
     <div
       // clicking anywhere in the box (not just the first line) focuses the text
       onClick={(e) => {
-        if (!e.target.closest("button")) ref.current?.focus();
+        if (!e.target.closest("button, input, [role='menu'], [role='dialog']")) ref.current?.focus();
       }}
       className="flex w-full cursor-text items-end gap-2 rounded-2xl border border-zinc-700 bg-zinc-800 p-2 pl-3 shadow-lg transition-colors focus-within:border-zinc-500"
     >
@@ -158,6 +158,7 @@ export default function ChatInput({
         )}
         <textarea
           ref={ref}
+          data-chat-input="true"
           rows={1}
           value={value}
           maxLength={MAX_LENGTH}

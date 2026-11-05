@@ -1,5 +1,7 @@
 import { useState } from "react";
 import PopoverMenu from "../../PopoverMenu";
+import useKeepTyping from "../../../hooks/useKeepTyping";
+import { rememberTyping } from "../../../lib/keyboard";
 
 const LEVELS = [
   { id: "low", label: "Low", note: "quick and efficient" },
@@ -11,12 +13,15 @@ export default function EffortPill({ chat }) {
   const [menu, setMenu] = useState(null);
   const current = LEVELS.find((l) => l.id === chat.options.effort) ?? LEVELS[1];
 
+  useKeepTyping(Boolean(menu));
+
   return (
     <>
       <button
         type="button"
         aria-haspopup="listbox"
         disabled={chat.loading}
+        onPointerDown={rememberTyping}
         onMouseDown={(e) => e.preventDefault()}
         onClick={(e) => setMenu({ rect: e.currentTarget.getBoundingClientRect() })}
         className="shrink-0 whitespace-nowrap rounded-full bg-zinc-700/60 px-2.5 py-1 text-xs text-zinc-300 transition-colors hover:bg-zinc-700 disabled:opacity-40"
@@ -26,7 +31,7 @@ export default function EffortPill({ chat }) {
 
       {menu && (
         <PopoverMenu rect={menu.rect} width={230} onClose={() => setMenu(null)}>
-          <div className="p-1">
+          <div role="menu" onMouseDown={(e) => e.preventDefault()} className="p-1">
             {LEVELS.map((l) => (
               <button
                 key={l.id}

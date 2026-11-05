@@ -1,6 +1,30 @@
 export const FOCUS_EVENT = "chat-input:focus";
 
-const isTouch = () => window.matchMedia("(pointer: coarse)").matches;
+const isTouch = () => window.matchMedia("(pointer: coarse)").matches
+
+const CHAT_INPUT = "[data-chat-input]";
+let wasTyping = false;
+
+/** A tap is starting on a control next to the text box: note whether the keyboard is up. */
+export function rememberTyping() {
+  wasTyping = Boolean(document.activeElement?.matches?.(CHAT_INPUT));
+}
+
+/** Put things back as they were: typing stays typing, not typing stays not typing. */
+export function restoreTyping() {
+  if (chatFocusBlocked()) return;
+  const input = document.querySelector(CHAT_INPUT);
+  if (!input) return;
+  if (wasTyping) {
+    if (document.activeElement !== input) input.focus({ preventScroll: true });
+  } else if (document.activeElement === input) {
+    input.blur();
+  }
+}
+
+export const forgetTyping = () => {
+  wasTyping = false;
+};
 
 // True while something (e.g. the profile panel) has set data-no-chat-focus on <html>.
 export const chatFocusBlocked = () =>

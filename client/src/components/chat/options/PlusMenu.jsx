@@ -3,6 +3,8 @@ import PopoverMenu from "../../PopoverMenu";
 import { useRoughbooks } from "../../roughbooks/roughbooks-context";
 import { searchInfo } from "../../../lib/chatOptions";
 import NameRoughbookDialog from "./NameRoughbookDialog";
+import useKeepTyping from "../../../hooks/useKeepTyping";
+import { rememberTyping } from "../../../lib/keyboard";
 
 const keepFocus = (e) => e.preventDefault(); // tapping + shouldn't close the keyboard
 const row =
@@ -29,6 +31,8 @@ export default function PlusMenu({ chat }) {
   const [view, setView] = useState("main");
   const [naming, setNaming] = useState(false);
 
+  useKeepTyping(Boolean(menu) || naming, `${view}-${status}`, naming);
+
   const close = () => setMenu(null);
 
   const isCurrent = (b) =>
@@ -48,6 +52,7 @@ export default function PlusMenu({ chat }) {
         aria-label="Chat options"
         aria-haspopup="menu"
         disabled={loading}
+        onPointerDown={rememberTyping}
         onMouseDown={keepFocus}
         onClick={(e) => {
           ensureLoaded(); // normally already loaded; this covers a failed first load
@@ -70,7 +75,7 @@ export default function PlusMenu({ chat }) {
           onClose={close}
         >
           {view === "main" ? (
-            <div className="p-1">
+            <div role="menu" onMouseDown={keepFocus} className="p-1">
               <p className="px-3 pb-1 pt-2 text-xs text-zinc-500">Applies to this chat only</p>
 
               <button type="button" onClick={() => setView("books")} className={row}>
@@ -108,7 +113,7 @@ export default function PlusMenu({ chat }) {
               <p className="px-3 pb-2 pt-1 text-xs text-zinc-500">{searchInfo(options)}</p>
             </div>
           ) : (
-            <div className="max-h-72 overflow-y-auto p-1">
+            <div role="menu" onMouseDown={keepFocus} className="max-h-72 overflow-y-auto p-1">
               <button type="button" onClick={() => setView("main")} className={`${row} justify-start text-zinc-400`}>
                 <Icon d="m15 18-6-6 6-6" />
                 <span>
