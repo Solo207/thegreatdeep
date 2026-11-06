@@ -66,6 +66,11 @@ export function adoptDraft(chatId, { skipProject = false } = {}) {
   store.set(chatId, { ...draft, project });
   loaded.add(chatId);
   if (project) pendingProject.set(chatId, project);
+  if (true) {
+  // the user changed something on /new
+  const { webSearch, driveSearch, effort } = draft;
+  pendingDetail.set(chatId, { webSearch, driveSearch, effort });
+  }
   store.delete(DRAFT); // next new chat starts from the defaults again
   emit();
 }
@@ -75,3 +80,9 @@ export function takePendingProject(chatId) {
   pendingProject.delete(chatId);
   return p;
 }
+
+export const takePendingDetail = (chatId) => {
+  const d = pendingDetail.get(chatId) ?? null;
+  pendingDetail.delete(chatId);
+  return d;
+};

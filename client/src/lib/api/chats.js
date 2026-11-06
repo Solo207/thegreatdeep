@@ -1,6 +1,6 @@
 import { unwrap } from "./http";
-import { adoptDraft, optionsPayload, takePendingProject } from "../chatOptions";
-import { applyPendingProject } from "./detail";
+import { adoptDraft, optionsPayload, takePendingProject, takePendingDetail } from "../chatOptions";
+import { applyPendingProject, saveChatDetail } from "./detail";
 
 // The only file that calls /api/chats. Pages and hooks use these functions.
 
@@ -58,17 +58,19 @@ export async function sendMessage(chatId, content, selection = null, neighbors =
   const result = await request(`/${chatId}/messages`, {
     method: "POST",
     body: JSON.stringify({
-  content,            // the key your server most likely reads
-  message: content,   // n8n's name for it
-  selection,
-  above: neighbors?.above ?? null,
-  below: neighbors?.below ?? null,
-  ...optionsPayload(chatId),
-}),
+      content,            // the key your server most likely reads
+      message: content,   // n8n's name for it
+      selection,
+      above: neighbors?.above ?? null,
+      below: neighbors?.below ?? null,
+      ...optionsPayload(chatId),
+    }),
   });
-  // only after the send succeeded, so a failed send keeps the project pending
+  // only after the send succeeded, so a failed send keeps these pending
   const pending = takePendingProject(chatId);
-  if (pending) applyPendingProject(chatId, pending); // only after the send succeeded
+  if (pending) applyPendingProject(chatId, pending);
+  const pendingDetail = takePendingDetail(chatId);
+  if (pendingDetail) saveChatDetail(chatId, pendingDetail).catch(() => {}); // /detail, type "edit"
   return result;
 }
 
