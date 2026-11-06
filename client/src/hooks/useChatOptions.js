@@ -5,6 +5,7 @@ import {
   getChatDetail,
   removeChatFromProject,
   saveChatDetail,
+  saveDefaultEffort,
 } from "../lib/api/detail";
 import {
   getOptions,
@@ -15,6 +16,7 @@ import {
   setDraftDefaults,
   subscribe,
   withSearch,
+  setDraftEffort,
 } from "../lib/chatOptions";
 import { useToast } from "../components/toast/toast-context";
 import { useHistory } from "../components/sidebar/history-context";

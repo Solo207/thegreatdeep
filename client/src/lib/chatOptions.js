@@ -39,7 +39,7 @@ export function setDraftDefaults(detail) {
 /** Effort on /new: it becomes the default straight away. */
 export function setDraftEffort(effort) {
   draftDefaults = { ...draftDefaults, effort };
-  if (store.has(DRAFT)) store.set(DRAFT, { ...store.get(DRAFT), effort }); // keep a changed draft in step
+  if (store.has(DRAFT)) store.set(DRAFT, { ...store.get(DRAFT), effort });
   emit();
 }
 
