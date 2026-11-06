@@ -36,6 +36,13 @@ export function setDraftDefaults(detail) {
   if (!store.has(DRAFT)) emit(); // keep whatever the user already picked
 }
 
+/** Effort on /new: it becomes the default straight away. */
+export function setDraftEffort(effort) {
+  draftDefaults = { ...draftDefaults, effort };
+  if (store.has(DRAFT)) store.set(DRAFT, { ...store.get(DRAFT), effort }); // keep a changed draft in step
+  emit();
+}
+
 /** Merge a change in; if both searches end up off, switch the other one on. */
 export function withSearch(options, patch) {
   const next = { ...options, ...patch };
@@ -66,7 +73,7 @@ export function adoptDraft(chatId, { skipProject = false } = {}) {
   store.set(chatId, { ...draft, project });
   loaded.add(chatId);
   if (project) pendingProject.set(chatId, project);
-  if (true) {
+  if (store.has(DRAFT)) {
   // the user changed something on /new
   const { webSearch, driveSearch, effort } = draft;
   pendingDetail.set(chatId, { webSearch, driveSearch, effort });

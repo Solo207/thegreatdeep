@@ -39,6 +39,18 @@ export async function createRoughbookId(name) {
   return id;
 }
 
+// /new has no chat yet: n8n keeps this as the user's default effort
+export async function saveDefaultEffort(effort) {
+  await unwrap(
+    await fetch("/api/chats/detail", {
+      method: "POST",
+      credentials: "include",
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ effort }),
+    }),
+  );
+}
+
 /** A /new chat's roughbook, applied only after /chat-message was accepted. */
 export async function applyPendingProject(chatId, project) {
   try {

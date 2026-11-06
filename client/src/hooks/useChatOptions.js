@@ -90,19 +90,31 @@ export default function useChatOptions(chatId) {
   }, [chatId, pull]);
 
   const save = useCallback(
-    (patch) => {
-      lastEdit.current = Date.now();
-      const prev = getOptions(chatId);
-      const next = withSearch(prev, patch);
-      putOptions(chatId, next);
-      if (!chatId) return; // new chat: travels with the first message
-      saveChatDetail(chatId, next).catch(() => {
-        putOptions(chatId, prev);
+  (patch) => {
+    lastEdit.current = Date.now();
+
+    // /new: there is no chat yet, but effort is saved straight away
+    if (!chatId && "effort" in patch) {
+      const prevEffort = getOptions(null).effort;
+      setDraftEffort(patch.effort);
+      saveDefaultEffort(patch.effort).catch(() => {
+        setDraftEffort(prevEffort);
         toast("Couldn't save that setting");
       });
-    },
-    [chatId, toast],
-  );
+      return;
+    }
+
+    const prev = getOptions(chatId);
+    const next = withSearch(prev, patch);
+    putOptions(chatId, next);
+    if (!chatId) return; // other /new changes wait for the first message
+    saveChatDetail(chatId, next).catch(() => {
+      putOptions(chatId, prev);
+      toast("Couldn't save that setting");
+    });
+  },
+  [chatId, toast],
+);
 
   /**
    * next = { id, name }          an existing roughbook

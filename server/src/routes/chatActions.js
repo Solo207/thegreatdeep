@@ -3,7 +3,7 @@ import requireAuth from "../middleware/requireAuth.js";
 import { callN8n, actionN8n } from "../lib/n8n.js";
 import { RB_ID_RE } from "../lib/ids.js";
 import { userDetails } from "../lib/user.js";
-import { cleanDetail, cleanOptions } from "../lib/detail.js";
+import { cleanDetail, cleanOptions, effortOf, DETAIL_QUERY } from "../lib/detail.js";
 import { cut, fail } from "./pq.js";
 
 const router = Router();
@@ -55,7 +55,7 @@ router.get("/all", requireAuth, async (req, res) => {
 // the default detail settings, for a chat that doesn't exist yet
 router.get("/detail", requireAuth, async (req, res) => {
   try {
-    const data = await callN8n("detail", { ...userDetails(req), type: "get" });
+    const data = await callN8n(DETAIL_QUERY, { ...userDetails(req), type: "get" });
     res.json(cleanDetail(data));
   } catch (err) {
     fail(res, err);
@@ -84,7 +84,7 @@ router.get("/:chatId/detail", requireAuth, async (req, res) => {
   const { chatId } = req.params;
   if (!UUID_RE.test(chatId)) return res.status(404).json({ error: "Not found" });
   try {
-    const data = await callN8n("detail", { ...userDetails(req), chatId, type: "get" });
+    const data = await callN8n(DETAIL_QUERY, { ...userDetails(req), chatId, type: "get" });
     res.json(cleanDetail(data));
   } catch (err) {
     fail(res, err);
@@ -95,11 +95,25 @@ router.post("/:chatId/detail", requireAuth, async (req, res) => {
   const { chatId } = req.params;
   if (!UUID_RE.test(chatId)) return res.status(404).json({ error: "Not found" });
   try {
-    await actionN8n("detail", {
+    await actionN8n(DETAIL_QUERY, {
       ...cleanOptions(req.body),
       ...userDetails(req),
       chatId,
       type: "edit",
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    fail(res, err);
+  }
+});
+
+// effort-only edit, for a chat that doesn't exist yet
+router.post("/detail", requireAuth, async (req, res) => {
+  try {
+    await actionN8n(DETAIL_QUERY, {
+      ...userDetails(req),
+      type: "edit",
+      effort: effortOf(req.body?.effort),
     });
     res.json({ ok: true });
   } catch (err) {
