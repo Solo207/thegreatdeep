@@ -1,5 +1,7 @@
 import { ApiError } from "./chats";
 import { unwrap } from "./http";
+import { makeCachedLoader, prefetchAll } from "../papersCache";
+
 
 const kindFor = (status) =>
   status === 401 ? "signed_out"
@@ -7,6 +9,10 @@ const kindFor = (status) =>
   : status === 429 ? "rate_limited"
   : status === 504 ? "timeout"
   : "failed";
+
+const papers = makeCachedLoader((subject) =>
+  request("/papers", { method: "POST", body: JSON.stringify({ subject }) }).then((d) => d.groups)
+);
 
 async function request(path, options = {}) {
   let res;
@@ -26,8 +32,9 @@ async function request(path, options = {}) {
 export const getSubjects = () => request("/subjects").then((d) => d.subjects);
 
 // [{ name: "0'25", items: [{ code, title, description }] }, ...]
-export const getPapers = (subject) =>
-  request("/papers", { method: "POST", body: JSON.stringify({ subject }) }).then((d) => d.groups);
+export const getPapers = papers.get;
+export const prefetchPapers = (subjects, first, shouldStop) =>
+  prefetchAll(papers, subjects, first, shouldStop);
 
 // time = minutes, 0 = no timer. Returns the link.
 export const startPaper = ({ code, title, time }) =>
@@ -35,5 +42,6 @@ export const startPaper = ({ code, title, time }) =>
     (d) => d.link
   );
 
+  
 // Returns the link.
 export const addPastQuestion = () => request("/add", { method: "POST" }).then((d) => d.link);

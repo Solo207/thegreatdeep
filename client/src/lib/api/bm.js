@@ -1,3 +1,4 @@
+import { makeCachedLoader, prefetchAll } from "../papersCache";
 import { ApiError } from "./chats";
 import { unwrap } from "./http";
 
@@ -7,6 +8,10 @@ const kindFor = (status) =>
   : status === 429 ? "rate_limited"
   : status === 504 ? "timeout"
   : "failed";
+
+const bookmarks = makeCachedLoader((subject) =>
+  request("/papers", { method: "POST", body: JSON.stringify({ subject }) }).then((d) => d.groups)
+);
 
 async function request(path, options = {}) {
   let res;
@@ -25,14 +30,16 @@ async function request(path, options = {}) {
 // ["Microbiology", ...]
 export const getBookmarkSubjects = () => request("/subjects").then((d) => d.subjects);
 
-// [{ name: "0'25", items: [{ code, title, description }] }, ...]
-export const getBookmarks = (subject) =>
-  request("/papers", { method: "POST", body: JSON.stringify({ subject }) }).then((d) => d.groups);
+export const getBookmarks = bookmarks.get;
+export const prefetchBookmarks = (subjects, first, shouldStop) =>
+  prefetchAll(bookmarks, subjects, first, shouldStop);
 
-// remove one bookmark (only code and title are sent)
+// remove one bookmark (only code and title are sent); the saved lists are now out of date
 export const deleteBookmark = ({ code, title }) =>
-  request("/delete", { method: "POST", body: JSON.stringify({ code, title }) });
-
+  request("/delete", { method: "POST", body: JSON.stringify({ code, title }) }).then((r) => {
+    bookmarks.clear();
+    return r;
+  });
 // time = minutes, 0 = no timer. Returns the link.
 export const startBookmark = ({ code, title, time }) =>
   request("/start", { method: "POST", body: JSON.stringify({ code, title, time }) }).then(
