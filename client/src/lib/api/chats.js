@@ -1,6 +1,7 @@
 import { unwrap } from "./http";
 import { adoptDraft, optionsPayload, takePendingProject, takePendingDetail } from "../chatOptions";
 import { applyPendingProject, saveChatDetail } from "./detail";
+const inflight = new Map();
 
 // The only file that calls /api/chats. Pages and hooks use these functions.
 
@@ -54,24 +55,31 @@ export function getChat(chatId) {
 // Send a message. `selection` is set when the user tapped a button or list row:
 // { id, source: "buttons" | "list", messageId }
 // `neighbors` is { above, below }: the ids of the messages around the new one.
-export async function sendMessage(chatId, content, selection = null, neighbors = {}) {
-  const result = await request(`/${chatId}/messages`, {
-    method: "POST",
-    body: JSON.stringify({
-      content,            // the key your server most likely reads
-      message: content,   // n8n's name for it
-      selection,
-      above: neighbors?.above ?? null,
-      below: neighbors?.below ?? null,
-      ...optionsPayload(chatId),
-    }),
-  });
-  // only after the send succeeded, so a failed send keeps these pending
-  const pending = takePendingProject(chatId);
-  if (pending) applyPendingProject(chatId, pending);
-  const pendingDetail = takePendingDetail(chatId);
-  if (pendingDetail) saveChatDetail(chatId, pendingDetail).catch(() => {}); // /detail, type "edit"
-  return result;
+export function sendMessage(chatId, content, selection = null, neighbors = {}) {
+  if (inflight.has(chatId)) return inflight.get(chatId);
+
+  const run = (async () => {
+    const result = await request(`/${chatId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({
+        content,
+        message: content,
+        selection,
+        above: neighbors?.above ?? null,
+        below: neighbors?.below ?? null,
+        ...optionsPayload(chatId),
+      }),
+    });
+    // only after the send succeeded, so a failed send keeps these pending
+    const pendingProject = takePendingProject(chatId);
+    if (pendingProject) applyPendingProject(chatId, pendingProject);
+    const pendingDetail = takePendingDetail(chatId);
+    if (pendingDetail) saveChatDetail(chatId, pendingDetail).catch(() => {});
+    return result;
+  })().finally(() => inflight.delete(chatId));
+
+  inflight.set(chatId, run);
+  return run;
 }
 
 // The latest chats for the sidebar. Returns { chats: [{ id, title, date, rough }], hasMore }
