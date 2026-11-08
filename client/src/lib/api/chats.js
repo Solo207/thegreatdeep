@@ -1,9 +1,10 @@
 import { unwrap } from "./http";
 import { adoptDraft, optionsPayload, takePendingProject, takePendingDetail } from "../chatOptions";
 import { applyPendingProject, saveChatDetail } from "./detail";
-const inflight = new Map();
 
 // The only file that calls /api/chats. Pages and hooks use these functions.
+
+const inflight = new Map();
 
 export class ApiError extends Error {
   constructor(status, kind) {
@@ -35,6 +36,19 @@ async function request(path, options = {}) {
   return unwrap(res);
 }
 
+// Run a step that must never turn a success into an error.
+// Catches both sync throws and async rejections, and logs the real problem.
+function safely(label, fn) {
+  try {
+    const out = fn();
+    if (out && typeof out.then === "function") {
+      out.catch((err) => console.error(`${label} failed`, err));
+    }
+  } catch (err) {
+    console.error(`${label} failed`, err);
+  }
+}
+
 // Create an empty chat (inside a roughbook when rb is given). Returns its id.
 export async function createChat({ rb } = {}) {
   const data = await request("", {
@@ -43,7 +57,7 @@ export async function createChat({ rb } = {}) {
   });
   const chatId = data.id;
   // the Roughbook page already creates the chat inside its roughbook
-  adoptDraft(chatId, { skipProject: Boolean(rb) });
+  safely("adoptDraft", () => adoptDraft(chatId, { skipProject: Boolean(rb) }));
   return chatId;
 }
 
@@ -70,11 +84,16 @@ export function sendMessage(chatId, content, selection = null, neighbors = {}) {
         ...optionsPayload(chatId),
       }),
     });
-    // only after the send succeeded, so a failed send keeps these pending
-    const pendingProject = takePendingProject(chatId);
-    if (pendingProject) applyPendingProject(chatId, pendingProject);
-    const pendingDetail = takePendingDetail(chatId);
-    if (pendingDetail) saveChatDetail(chatId, pendingDetail).catch(() => {});
+    // the message was accepted: these extras must never turn that into a failure.
+    // Each step is isolated so one failing doesn't skip the other.
+    safely("applyPendingProject", () => {
+      const pendingProject = takePendingProject(chatId);
+      if (pendingProject) return applyPendingProject(chatId, pendingProject);
+    });
+    safely("saveChatDetail", () => {
+      const pendingDetail = takePendingDetail(chatId);
+      if (pendingDetail) return saveChatDetail(chatId, pendingDetail);
+    });
     return result;
   })().finally(() => inflight.delete(chatId));
 
