@@ -14,6 +14,7 @@ import {
 } from "../lib/pending.js";
 import { cleanOptions, hasOptions } from "../lib/detail.js";
 import { neighbor } from "../lib/neighbors.js";
+import { wordsFrom } from "../lib/words.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -184,7 +185,8 @@ router.post("/:chatId/messages", async (req, res) => {
       return res.status(201).json({ message: normalized });
     }
 
-    const words = cleanWords(data);
+    const found = wordsFrom(data);
+    const words = found.length ? found : ["Thinking"];
     setPendingWords(userId, chatId, words);
     res.status(202).json({ words });
   } catch (err) {
