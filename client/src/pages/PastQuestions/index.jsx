@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CHAT_MAX_WIDTH } from "../../components/chat/config";
-import { addPastQuestion, getSubjects } from "../../lib/api/pq";
+import { addPastQuestion, getSubjects, prefetchPapers } from "../../lib/api/pq";
 import PapersPanel from "./PapersPanel";
 import LinkDialog from "./LinkDialog";
 import usePageTitle from "../../hooks/usePageTitle";
@@ -29,6 +29,7 @@ export default function PastQuestions() {
         if (ignore) return;
         setSubjects(list);
         setStatus("ready");
+        prefetchPapers(list, subject, () => ignore);
       })
       .catch(() => {
         if (ignore) return;

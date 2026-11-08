@@ -6,6 +6,7 @@ import {
   deleteBookmark,
   getBookmarkSubjects,
   getBookmarks,
+  prefetchBookmarks,
   startBookmark,
 } from "../../lib/api/bm";
 import usePageTitle from "../../hooks/usePageTitle";
@@ -30,6 +31,7 @@ export default function Bookmarks() {
         if (ignore) return;
         setSubjects(list);
         setStatus("ready");
+        prefetchBookmarks(list, subject, () => ignore);
       })
       .catch(() => {
         if (ignore) return;

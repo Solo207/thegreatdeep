@@ -72,13 +72,13 @@ app.use(
 
 app.use(
   "/api/pq",
-  rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: true, legacyHeaders: false }),
+  rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: true, legacyHeaders: false }),
   pqRouter
 );
 
 app.use(
   "/api/bm",
-  rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: true, legacyHeaders: false }),
+  rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: true, legacyHeaders: false }),
   bmRouter
 );
 
