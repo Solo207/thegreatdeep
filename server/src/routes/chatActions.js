@@ -5,6 +5,7 @@ import { RB_ID_RE } from "../lib/ids.js";
 import { userDetails } from "../lib/user.js";
 import { cleanDetail, cleanOptions, effortOf, DETAIL_QUERY } from "../lib/detail.js";
 import { cut, fail } from "./pq.js";
+import { linksFrom } from "../lib/outline.js";
 
 const router = Router();
 
@@ -102,6 +103,17 @@ router.post("/:chatId/detail", requireAuth, async (req, res) => {
       type: "edit",
     });
     res.json({ ok: true });
+  } catch (err) {
+    fail(res, err);
+  }
+});
+
+router.get("/:chatId/outline", requireAuth, async (req, res) => {
+  const { chatId } = req.params;
+  if (!/^[\w-]{1,64}$/.test(chatId)) return res.status(400).json({ error: "Bad chat id" });
+  try {
+    const data = await callN8n("rightsb", { ...userDetails(req), chatId });
+    res.json({ links: linksFrom(data) });
   } catch (err) {
     fail(res, err);
   }

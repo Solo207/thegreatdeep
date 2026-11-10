@@ -6,6 +6,8 @@ import { neighborsFor } from "../../../lib/neighbors";
 // true: the input is locked until n8n sends "done". false: you can keep sending.
 const LOCK_INPUT_WHILE_WAITING = true;
 
+const refreshOutline = () => window.dispatchEvent(new Event("outline:refresh"));
+
 const userMessage = (text) => ({
   id: crypto.randomUUID(),
   role: "user",
@@ -76,6 +78,7 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
         if (evt.done) {
           setIsWaiting(false);
           setWords([]);
+          refreshOutline(); // the reply is finished, so the "On this page" list may have changed
         }
       } else if (evt.type === "reply_failed") {
         setIsWaiting(false);
@@ -108,6 +111,7 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
     setSendError(null);
     try {
       const result = await sendMessage(chatId, text, selection, neighbors);
+      refreshOutline(); // the "On this page" list asks n8n (/rightsb) again
       if (result.message) {
         // old synchronous workflow: the reply is already here
         setMessages((prev) => [...prev, result.message]);

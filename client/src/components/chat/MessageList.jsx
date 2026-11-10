@@ -198,7 +198,9 @@ export default function MessageList({ messages, isLoading, words = [], onSelect 
               {m.role === "user" ? (
                 <div
                   ref={i === lastUserIndex ? lastUserRef : null}
-                  className="flex justify-end"
+                  data-message-id={m.id}
+                  data-user-message
+                  className="flex scroll-mt-4 justify-end"
                 >
                   <div className="flex max-w-[85%] flex-col items-end">
                     <div className="whitespace-pre-wrap wrap-anywhere rounded-2xl bg-indigo-500 px-4 py-2.5 text-white">

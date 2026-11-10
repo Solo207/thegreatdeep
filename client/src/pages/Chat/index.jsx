@@ -9,6 +9,8 @@ import ChatHeader from "./ChatHeader";
 import useChat from "./hooks/useChat";
 import { useRoughbooks } from "../../components/roughbooks/roughbooks-context";
 import usePageTitle from "../../hooks/usePageTitle";
+import RightSidebar from "../../components/rightbar/RightSidebar";
+
 
 const ERROR_TEXT = {
   signed_out: "Your session has expired. Use Sign out (top right), then sign in again.",
@@ -102,29 +104,42 @@ function ChatScreen({ chatId }) {
     );
   }
 
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <ChatHeader chat={chatForMenu} />
-      <MessageList messages={messages} isLoading={isWaiting} words={words} onSelect={send} />
+ return (
+  <div className="flex min-h-0 flex-1 flex-col">
+    <ChatHeader chat={chatForMenu} />
 
-      <div className="px-4 pb-4">
-        <div className={`mx-auto w-full ${CHAT_MAX_WIDTH}`}>
-          {sendError && (
-            <div className="mb-2 flex items-center justify-between gap-3 rounded-lg border border-red-900 bg-red-950/40 px-3 py-2 text-sm text-red-200">
-              <span>{ERROR_TEXT[sendError] ?? "Couldn't get a reply."}</span>
-              <button
-                onClick={retrySend}
-                className="shrink-0 rounded-md border border-red-800 px-3 py-1 transition-colors hover:bg-red-900/40"
-              >
-                Retry
-              </button>
-            </div>
-          )}
-          <ChatInput onSend={send} disabled={inputLocked} compact />
+    {/* Below the header: chat on the left, "On this page" sidebar on the right */}
+    <div className="relative flex min-h-0 flex-1">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <MessageList
+          messages={messages}
+          isLoading={isWaiting}
+          words={words}
+          onSelect={send}
+        />
+
+        <div className="px-4 pb-4">
+          <div className={`mx-auto w-full ${CHAT_MAX_WIDTH}`}>
+            {sendError && (
+              <div className="mb-2 flex items-center justify-between gap-3 rounded-lg border border-red-900 bg-red-950/40 px-3 py-2 text-sm text-red-200">
+                <span>{ERROR_TEXT[sendError] ?? "Couldn't get a reply."}</span>
+                <button
+                  onClick={retrySend}
+                  className="shrink-0 rounded-md border border-red-800 px-3 py-1 transition-colors hover:bg-red-900/40"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+            <ChatInput onSend={send} disabled={inputLocked} compact />
+          </div>
         </div>
       </div>
+
+      <RightSidebar />
     </div>
-  );
+  </div>
+);
 }
 
 export default function Chat() {

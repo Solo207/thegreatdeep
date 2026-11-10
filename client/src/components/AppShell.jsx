@@ -16,19 +16,22 @@ import ToastProvider from "./toast/ToastProvider";
 import NoticeListener from "./toast/NoticeListener";
 import NewChatButton from "./NewChatButton";
 import ProfilePanel from "./profile/ProfilePanel";
+import RightSidebarProvider from "./rightbar/RightSidebarProvider";
+import { useRightSidebar } from "./rightbar/right-sidebar-context";
 
-export default function AppShell() {
+function AppShellInner() {
   const {
     isDesktop, isOpen, toggle, closeDrawer,
     peek, startPeek, endPeek,
     width, setWidth,
   } = useSidebarState();
+  const right = useRightSidebar();
   const viewportHeight = useVisualViewportHeight();
   const { pathname } = useLocation();
   const onNewChat = pathname === "/new";
 
   const showStripNewChat =
-  !isDesktop && !pathname.startsWith("/chat/") && pathname !== "/new";
+    !isDesktop && !pathname.startsWith("/chat/") && pathname !== "/new";
   // where a page can put its title: the top strip, next to the sidebar button
   const [headerSlot, setHeaderSlot] = useState(null);
 
@@ -58,10 +61,23 @@ export default function AppShell() {
   const closeBySwipe = () => {
     if (!isDesktop && isOpen) closeDrawerAndFocus();
   };
-  useSwipe({
-    onSwipeRight: SIDEBAR_SWIPE_OPEN === "right" ? openBySwipe : closeBySwipe,
-    onSwipeLeft: SIDEBAR_SWIPE_OPEN === "left" ? openBySwipe : closeBySwipe,
-  });
+
+  // The right bar ("On this page") is a drawer on narrower screens too:
+  // swipe left pulls it out, swipe right pushes it away.
+  const rightDrawer = right.available && !right.isDocked;
+  const swipeRight = () => {
+    if (rightDrawer && right.isOpen) return right.closeDrawer();
+    (SIDEBAR_SWIPE_OPEN === "right" ? openBySwipe : closeBySwipe)();
+  };
+  const swipeLeft = () => {
+    if (!isDesktop && isOpen) return closeBySwipe(); // the left drawer is open: swipe left closes it
+    if (rightDrawer && !right.isOpen) {
+      closeKeyboard();
+      return right.openDrawer();
+    }
+    (SIDEBAR_SWIPE_OPEN === "left" ? openBySwipe : closeBySwipe)();
+  };
+  useSwipe({ onSwipeRight: swipeRight, onSwipeLeft: swipeLeft });
 
   return (
     <ToastProvider>
@@ -126,8 +142,7 @@ export default function AppShell() {
               </div>
             )}
 
-
-                          {/* small screens: the sidebar slides over the page as a drawer */}
+            {/* small screens: the sidebar slides over the page as a drawer */}
             {!isDesktop && isOpen && (
               <>
                 <div
@@ -168,5 +183,13 @@ export default function AppShell() {
       </HistoryProvider>
     </EventsProvider>
     </ToastProvider>
+  );
+}
+
+export default function AppShell() {
+  return (
+    <RightSidebarProvider>
+      <AppShellInner />
+    </RightSidebarProvider>
   );
 }
