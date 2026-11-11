@@ -13,7 +13,6 @@ import {
   getPending,
 } from "../lib/pending.js";
 import { cleanOptions, hasOptions } from "../lib/detail.js";
-import { neighbor } from "../lib/neighbors.js";
 import { wordsFrom } from "../lib/words.js";
 import { neighbor, cleanId } from "../lib/neighbors.js";
 
