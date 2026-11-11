@@ -1,11 +1,38 @@
+import { useLayoutEffect, useRef, useState } from "react";
 import { useRightSidebar } from "./right-sidebar-context";
 import RightToggle from "./RightToggle";
 import RightResizeHandle from "./RightResizeHandle";
 import { RIGHT_SLIDE_MS } from "./config";
+import { CHAT_MAX_WIDTH } from "../chat/config";
 import { closeKeyboard } from "../../lib/keyboard";
 import { jumpToMessage } from "./jump";
 
-function Panel({ r, width, resizable = false, onToggle }) {
+const GAP = 8; // space between the chat column and the icon (a smaller number moves it closer)
+const SIZE = 36; // the icon's width
+
+// How far from the right edge the floating icon sits on big screens: beside the chat column,
+// but never further in than the sliding bar is wide (so hovering it still brings the bar in).
+function useToggleOffset(probeRef, active, panelWidth) {
+  const [offset, setOffset] = useState(12);
+  useLayoutEffect(() => {
+    if (!active) return;
+    const probe = probeRef.current;
+    const column = probe?.firstElementChild;
+    if (!probe || !column) return;
+    const measure = () => {
+      const free = (probe.clientWidth - column.getBoundingClientRect().width) / 2; // room beside the chat column
+      const max = Math.max(12, panelWidth - SIZE - 12);
+      setOffset(Math.round(Math.min(max, Math.max(12, free - GAP - SIZE))));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(probe);
+    return () => observer.disconnect();
+  }, [active, panelWidth, probeRef]);
+  return offset;
+}
+
+function Panel({ r, width, resizable = false, onToggle, active = false }) {
   const empty = r.links.length === 0;
   return (
     <aside style={{ width }} className="relative flex h-full shrink-0 flex-col bg-zinc-900">
@@ -13,7 +40,7 @@ function Panel({ r, width, resizable = false, onToggle }) {
 
       <div className="flex h-12 shrink-0 items-center justify-between pl-4 pr-3">
         <h2 className="text-xs font-semibold tracking-wider text-zinc-400">ON THIS PAGE</h2>
-        {onToggle && <RightToggle onClick={onToggle} />}
+        {onToggle && <RightToggle onClick={onToggle} active={active} />}
       </div>
 
       <nav aria-label="On this page" className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
@@ -61,6 +88,10 @@ function Panel({ r, width, resizable = false, onToggle }) {
 // Lives inside the chat page, below the header, so it starts under the header line.
 export default function RightSidebar() {
   const r = useRightSidebar();
+  const probeRef = useRef(null);
+  const floatingOnBigScreen = Boolean(r?.available && r.isDocked && !r.isOpen);
+  const offset = useToggleOffset(probeRef, floatingOnBigScreen, r?.width ?? 0);
+
   if (!r || !r.available) return null;
 
   const toggle = () => {
@@ -70,32 +101,43 @@ export default function RightSidebar() {
 
   // big screens, open: the bar sits beside the chat
   if (r.isDocked && r.isOpen) {
-    return <Panel r={r} width={r.width} resizable onToggle={toggle} />;
+    return <Panel r={r} width={r.width} resizable onToggle={toggle} active />;
   }
 
-  // big screens, hidden: a floating icon; hovering it eases the bar in until the mouse leaves
+  // big screens, hidden: a floating icon beside the chat column; hovering it eases the bar in
   if (r.isDocked) {
     return (
-      <div
-        data-right-peek-zone
-        className="pointer-events-none absolute inset-y-0 right-0 z-30"
-        onMouseEnter={r.startPeek}
-        onMouseLeave={r.endPeek}
-      >
-        <div className="pointer-events-auto absolute right-0 top-0 p-3">
-          <RightToggle onClick={toggle} />
-        </div>
+      <>
+        {/* invisible copy of the chat column, only used to measure where it ends */}
         <div
-          style={{ transitionDuration: `${RIGHT_SLIDE_MS}ms` }}
-          className={`absolute right-0 top-0 h-full shadow-2xl transition-all ease-out ${
-            r.peek
-              ? "pointer-events-auto visible translate-x-0 opacity-100"
-              : "pointer-events-none invisible translate-x-8 opacity-0"
-          }`}
+          ref={probeRef}
+          aria-hidden="true"
+          className="pointer-events-none invisible absolute inset-x-0 top-0 h-0 px-4"
         >
-          <Panel r={r} width={r.width} resizable onToggle={toggle} />
+          <div className={`mx-auto w-full ${CHAT_MAX_WIDTH}`} />
         </div>
-      </div>
+
+        <div
+          data-right-peek-zone
+          className="pointer-events-none absolute inset-y-0 right-0 z-30"
+          onMouseEnter={r.startPeek}
+          onMouseLeave={r.endPeek}
+        >
+          <div style={{ right: offset }} className="pointer-events-auto absolute top-0 pt-3">
+            <RightToggle onClick={toggle} />
+          </div>
+          <div
+            style={{ transitionDuration: `${RIGHT_SLIDE_MS}ms` }}
+            className={`absolute right-0 top-0 h-full shadow-2xl transition-all ease-out ${
+              r.peek
+                ? "pointer-events-auto visible translate-x-0 opacity-100"
+                : "pointer-events-none invisible translate-x-8 opacity-0"
+            }`}
+          >
+            <Panel r={r} width={r.width} resizable onToggle={toggle} />
+          </div>
+        </div>
+      </>
     );
   }
 
@@ -109,7 +151,7 @@ export default function RightSidebar() {
         <>
           <div className="absolute inset-0 z-30 bg-black/60" onClick={r.closeDrawer} />
           <div className="absolute inset-y-0 right-0 z-40 shadow-2xl">
-            <Panel r={r} width="min(20rem, 85vw)" onToggle={toggle} />
+            <Panel r={r} width="min(20rem, 85vw)" onToggle={toggle} active />
           </div>
         </>
       )}
