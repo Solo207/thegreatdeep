@@ -1,39 +1,23 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useRightSidebar } from "./right-sidebar-context";
 import RightToggle from "./RightToggle";
 import RightResizeHandle from "./RightResizeHandle";
+import useActiveQuestion from "./useActiveQuestion";
 import { RIGHT_SLIDE_MS } from "./config";
-import { CHAT_MAX_WIDTH } from "../chat/config";
 import { closeKeyboard } from "../../lib/keyboard";
 import { jumpToMessage } from "./jump";
 
-const GAP = 8; // space between the chat column and the icon (a smaller number moves it closer)
-const SIZE = 36; // the icon's width
-
-// How far from the right edge the floating icon sits on big screens: beside the chat column,
-// but never further in than the sliding bar is wide (so hovering it still brings the bar in).
-function useToggleOffset(probeRef, active, panelWidth) {
-  const [offset, setOffset] = useState(12);
-  useLayoutEffect(() => {
-    if (!active) return;
-    const probe = probeRef.current;
-    const column = probe?.firstElementChild;
-    if (!probe || !column) return;
-    const measure = () => {
-      const free = (probe.clientWidth - column.getBoundingClientRect().width) / 2; // room beside the chat column
-      const max = Math.max(12, panelWidth - SIZE - 12);
-      setOffset(Math.round(Math.min(max, Math.max(12, free - GAP - SIZE))));
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(probe);
-    return () => observer.disconnect();
-  }, [active, panelWidth, probeRef]);
-  return offset;
-}
-
-function Panel({ r, width, resizable = false, onToggle, active = false }) {
+function Panel({ r, width, resizable = false, onToggle, active = false, activeIndex, onPick }) {
+  const navRef = useRef(null);
   const empty = r.links.length === 0;
+
+  // a long list follows the current question
+  useEffect(() => {
+    navRef.current
+      ?.querySelector("[aria-current='true']")
+      ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [activeIndex]);
+
   return (
     <aside style={{ width }} className="relative flex h-full shrink-0 flex-col bg-zinc-900">
       {resizable && <RightResizeHandle width={r.width} onResize={r.setWidth} />}
@@ -43,7 +27,7 @@ function Panel({ r, width, resizable = false, onToggle, active = false }) {
         {onToggle && <RightToggle onClick={onToggle} active={active} />}
       </div>
 
-      <nav aria-label="On this page" className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
+      <nav ref={navRef} aria-label="On this page" className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
         {empty && (r.status === "loading" || r.status === "idle") && (
           <div className="flex flex-col gap-2 px-1">
             {Array.from({ length: 4 }, (_, i) => (
@@ -66,19 +50,24 @@ function Panel({ r, width, resizable = false, onToggle, active = false }) {
         )}
 
         <ul className="flex flex-col gap-0.5">
-          {r.links.map((link, i) => (
-            <li key={link.id}>
-              <button
-                onClick={() => {
-                  jumpToMessage(link.id, i);
-                  if (!r.isDocked) r.closeDrawer();
-                }}
-                className="line-clamp-2 w-full cursor-pointer rounded-lg px-3 py-2 text-left text-sm text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
-              >
-                {link.title}
-              </button>
-            </li>
-          ))}
+          {r.links.map((link, i) => {
+            const current = i === activeIndex;
+            return (
+              <li key={link.id}>
+                <button
+                  onClick={() => onPick(link, i)}
+                  title={link.title}
+                  aria-current={current ? "true" : undefined}
+                  className={`w-full cursor-pointer rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-zinc-800 ${
+                    current ? "text-indigo-300" : "text-zinc-400 hover:text-zinc-100"
+                  }`}
+                >
+                  {/* the clamp has to be on an inner element: a button ignores it */}
+                  <span className="line-clamp-2 wrap-anywhere">{link.title}</span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </nav>
     </aside>
@@ -88,56 +77,55 @@ function Panel({ r, width, resizable = false, onToggle, active = false }) {
 // Lives inside the chat page, below the header, so it starts under the header line.
 export default function RightSidebar() {
   const r = useRightSidebar();
-  const probeRef = useRef(null);
-  const floatingOnBigScreen = Boolean(r?.available && r.isDocked && !r.isOpen);
-  const offset = useToggleOffset(probeRef, floatingOnBigScreen, r?.width ?? 0);
+  const { spy, choose } = useActiveQuestion(Boolean(r?.available));
 
   if (!r || !r.available) return null;
+
+  // which row is current: by the question's id, otherwise by its place in the list
+  const byId = r.links.findIndex((l) => l.id === spy.id);
+  const activeIndex = r.links.length ? (byId >= 0 ? byId : Math.min(spy.index, r.links.length - 1)) : -1;
+
+  const pick = (link, i) => {
+    choose(link.id, i);
+    jumpToMessage(link.id, i);
+    if (!r.isDocked) r.closeDrawer();
+  };
 
   const toggle = () => {
     if (!r.isDocked && !r.isOpen) closeKeyboard(); // the drawer must not sit beside an open keyboard
     r.toggle();
   };
 
+  const panelProps = { r, activeIndex, onPick: pick };
+
   // big screens, open: the bar sits beside the chat
   if (r.isDocked && r.isOpen) {
-    return <Panel r={r} width={r.width} resizable onToggle={toggle} active />;
+    return <Panel {...panelProps} width={r.width} resizable onToggle={toggle} active />;
   }
 
-  // big screens, hidden: a floating icon beside the chat column; hovering it eases the bar in
+  // big screens, hidden: a floating icon at the edge; hovering it eases the bar in
   if (r.isDocked) {
     return (
-      <>
-        {/* invisible copy of the chat column, only used to measure where it ends */}
-        <div
-          ref={probeRef}
-          aria-hidden="true"
-          className="pointer-events-none invisible absolute inset-x-0 top-0 h-0 px-4"
-        >
-          <div className={`mx-auto w-full ${CHAT_MAX_WIDTH}`} />
+      <div
+        data-right-peek-zone
+        className="pointer-events-none absolute inset-y-0 right-0 z-30"
+        onMouseEnter={r.startPeek}
+        onMouseLeave={r.endPeek}
+      >
+        <div className="pointer-events-auto absolute right-0 top-0 p-3">
+          <RightToggle onClick={toggle} />
         </div>
-
         <div
-          data-right-peek-zone
-          className="pointer-events-none absolute inset-y-0 right-0 z-30"
-          onMouseEnter={r.startPeek}
-          onMouseLeave={r.endPeek}
+          style={{ transitionDuration: `${RIGHT_SLIDE_MS}ms` }}
+          className={`absolute right-0 top-0 h-full shadow-2xl transition-all ease-out ${
+            r.peek
+              ? "pointer-events-auto visible translate-x-0 opacity-100"
+              : "pointer-events-none invisible translate-x-8 opacity-0"
+          }`}
         >
-          <div style={{ right: offset }} className="pointer-events-auto absolute top-0 pt-3">
-            <RightToggle onClick={toggle} />
-          </div>
-          <div
-            style={{ transitionDuration: `${RIGHT_SLIDE_MS}ms` }}
-            className={`absolute right-0 top-0 h-full shadow-2xl transition-all ease-out ${
-              r.peek
-                ? "pointer-events-auto visible translate-x-0 opacity-100"
-                : "pointer-events-none invisible translate-x-8 opacity-0"
-            }`}
-          >
-            <Panel r={r} width={r.width} resizable onToggle={toggle} />
-          </div>
+          <Panel {...panelProps} width={r.width} resizable onToggle={toggle} />
         </div>
-      </>
+      </div>
     );
   }
 
@@ -151,7 +139,7 @@ export default function RightSidebar() {
         <>
           <div className="absolute inset-0 z-30 bg-black/60" onClick={r.closeDrawer} />
           <div className="absolute inset-y-0 right-0 z-40 shadow-2xl">
-            <Panel r={r} width="min(20rem, 85vw)" onToggle={toggle} active />
+            <Panel {...panelProps} width="min(20rem, 85vw)" onToggle={toggle} active />
           </div>
         </>
       )}

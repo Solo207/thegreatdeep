@@ -38,9 +38,9 @@ export default function RightResizeHandle({ width, onResize }) {
       onPointerDown={onPointerDown}
       onKeyDown={onKeyDown}
       onDoubleClick={() => onResize(RIGHT_DEFAULT_WIDTH)}
-      className="group absolute left-0 top-1/2 z-10 flex h-16 w-3 -translate-x-1/2 -translate-y-1/2 cursor-col-resize touch-none items-center justify-center focus-visible:outline-none"
+      className="group absolute left-0 top-1/2 z-10 flex h-24 w-3 -translate-x-1/2 -translate-y-1/2 cursor-col-resize touch-none items-center justify-center focus-visible:outline-none"
     >
-      <span className="h-10 w-0.5 rounded-full bg-zinc-700 transition-colors group-hover:bg-indigo-500/70 group-focus-visible:bg-indigo-500/70 group-active:bg-indigo-500" />
+      <span className="6 w-0.5 rounded-full bg-zinc-700 transition-colors group-hover:bg-indigo-500/70 group-focus-visible:bg-indigo-500/70 group-active:bg-indigo-500" />
     </div>
   );
 }

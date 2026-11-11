@@ -186,6 +186,7 @@ export default function MessageList({ messages, isLoading, words = [], onSelect 
     <div className="relative min-h-0 flex-1">
       <div
         ref={scrollerRef}
+        data-chat-scroller
         onScroll={handleScroll}
         className="absolute inset-0 overflow-y-auto px-4 py-6"
       >
