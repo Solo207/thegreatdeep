@@ -55,7 +55,7 @@ function Panel({ r, width, resizable = false, onToggle, active = false, activeIn
             return (
               <li key={link.id}>
                 <button
-                  onClick={() => onPick(link, i)}
+                  onClick={() => onPick(link)}
                   title={link.title}
                   aria-current={current ? "true" : undefined}
                   className={`w-full cursor-pointer rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-zinc-800 ${
@@ -81,15 +81,13 @@ export default function RightSidebar() {
 
   if (!r || !r.available) return null;
 
-  // which row is current: by the question's id, otherwise by its place in the list
-  const byId = r.links.findIndex((l) => l.id === spy.id);
   const activeIndex = r.links.findIndex((l) => l.id === currentId); // -1 = none reached yet
 
   const pick = (link) => {
-  choose(link.id);
-  jumpToMessage(link.id);
-  if (!r.isDocked) r.closeDrawer();
-};
+    choose(link.id);
+    jumpToMessage(link.id);
+    if (!r.isDocked) r.closeDrawer();
+  };
 
   const toggle = () => {
     if (!r.isDocked && !r.isOpen) closeKeyboard(); // the drawer must not sit beside an open keyboard

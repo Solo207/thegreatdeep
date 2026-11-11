@@ -10,7 +10,7 @@ const LOCK_INPUT_WHILE_WAITING = true;
 const refreshOutline = () => window.dispatchEvent(new Event("outline:refresh"));
 
 const userMessage = (text) => ({
-  id: crypto.randomUUID(),
+  id: crypto.randomUUID(), // temporary: replaced by the real id n8n answers with
   role: "user",
   type: "text",
   createdAt: "just now",
@@ -33,7 +33,7 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
   const [isWaiting, setIsWaiting] = useState(Boolean(firstMessage));
   const [words, setWords] = useState([]);
   const [sendError, setSendError] = useState(null);
-  const [failed, setFailed] = useState(null); // { text, selection, neighbors, messageId } of the send that failed
+  const [failed, setFailed] = useState(null); // { text, selection, neighbors, localId } of the send that failed
 
   const startedRef = useRef(false);
   const lastSentRef = useRef(null);
@@ -79,13 +79,14 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
         if (evt.done) {
           setIsWaiting(false);
           setWords([]);
-          refreshOutline();
+          // only typed messages get a row in "On this page"
+          if (!lastSentRef.current?.selection) refreshOutline();
         }
       } else if (evt.type === "reply_failed") {
         setIsWaiting(false);
         setWords([]);
         setSendError("failed");
-        setFailed(lastSentRef.current); // so Retry can resend it (neighbours and id included)
+        setFailed(lastSentRef.current); // so Retry can resend it (neighbours included)
       }
     });
   }, [subscribe, chatId]);
@@ -104,15 +105,26 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
     setAttempt((n) => n + 1);
   };
 
-  // hand a message to the server
-  async function deliver(text, selection = null, neighbors = null, messageId = null) {
-    lastSentRef.current = { text, selection, neighbors, messageId };
+  // hand a message to the server. localId is the temporary id of the bubble on screen.
+  async function deliver(text, selection = null, neighbors = null, localId = null) {
+    lastSentRef.current = { text, selection, neighbors, localId };
     setIsWaiting(true);
     setWords([]);
     setSendError(null);
     try {
-      const result = await sendMessage(chatId, text, selection, neighbors, messageId);
-      refreshOutline();
+      const result = await sendMessage(chatId, text, selection, neighbors);
+
+      // the server answers with the real id of the user's message: the bubble takes it,
+      // so the "On this page" list can find it (the key keeps the bubble from re-mounting)
+      if (result.id && localId) {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === localId ? { ...m, id: result.id, key: m.key ?? localId } : m))
+        );
+      }
+
+      // only typed messages get a row (answers to questions, lists and buttons don't)
+      if (!selection) refreshOutline();
+
       if (result.message) {
         // old synchronous workflow: the reply is already here
         setMessages((prev) => [...prev, result.message]);
@@ -124,7 +136,7 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
       }
     } catch (err) {
       setSendError(err.kind ?? "failed");
-      setFailed({ text, selection, neighbors, messageId });
+      setFailed({ text, selection, neighbors, localId });
       setIsWaiting(false);
     }
   }
@@ -146,11 +158,11 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
   // resend the message that failed (its bubble is already on screen)
   const retrySend = () => {
     if (!failed) return;
-    const { text, selection, neighbors, messageId } = failed;
+    const { text, selection, neighbors, localId } = failed;
     setFailed(null);
-    // reuse the neighbours and the id from the original send: the failed bubble is already
+    // reuse the neighbours from the original send: the failed bubble is already
     // in the list now, so computing them again would pick up that bubble
-    deliver(text, selection, neighbors, messageId);
+    deliver(text, selection, neighbors, localId);
   };
 
   return {

@@ -69,33 +69,31 @@ export function getChat(chatId) {
 // Send a message. `selection` is set when the user tapped a button or list row:
 // { id, source: "buttons" | "list", messageId }
 // `neighbors` is { above, below }: the ids of the messages around the new one.
-export function sendMessage(chatId, content, selection = null, neighbors = {}, messageId = null) {
+export function sendMessage(chatId, content, selection = null, neighbors = {}) {
   if (inflight.has(chatId)) return inflight.get(chatId);
 
   const run = (async () => {
     const result = await request(`/${chatId}/messages`, {
       method: "POST",
       body: JSON.stringify({
-      content,
-      message: content,
-      messageId,
-      selection,
-      above: neighbors?.above ?? null,
-      below: neighbors?.below ?? null,
-      ...optionsPayload(chatId),
+        content,
+        message: content,
+        selection,
+        above: neighbors?.above ?? null,
+        below: neighbors?.below ?? null,
+        ...optionsPayload(chatId),
       }),
     });
-    // the message was accepted: these extras must never turn that into a failure.
-    // Each step is isolated so one failing doesn't skip the other.
-    safely("applyPendingProject", () => {
+    // the message was accepted: these extras must never turn that into a failure
+    try {
       const pendingProject = takePendingProject(chatId);
-      if (pendingProject) return applyPendingProject(chatId, pendingProject);
-    });
-    safely("saveChatDetail", () => {
+      if (pendingProject) applyPendingProject(chatId, pendingProject);
       const pendingDetail = takePendingDetail(chatId);
-      if (pendingDetail) return saveChatDetail(chatId, pendingDetail);
-    });
-    return result;
+      if (pendingDetail) saveChatDetail(chatId, pendingDetail).catch(() => {});
+    } catch (err) {
+      console.error("after-send step failed", err);
+    }
+    return result; // { id, words }
   })().finally(() => inflight.delete(chatId));
 
   inflight.set(chatId, run);
