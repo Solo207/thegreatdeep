@@ -77,19 +77,19 @@ function Panel({ r, width, resizable = false, onToggle, active = false, activeIn
 // Lives inside the chat page, below the header, so it starts under the header line.
 export default function RightSidebar() {
   const r = useRightSidebar();
-  const { spy, choose } = useActiveQuestion(Boolean(r?.available));
+  const { currentId, choose } = useActiveQuestion(Boolean(r?.available), r?.links ?? []);
 
   if (!r || !r.available) return null;
 
   // which row is current: by the question's id, otherwise by its place in the list
   const byId = r.links.findIndex((l) => l.id === spy.id);
-  const activeIndex = r.links.length ? (byId >= 0 ? byId : Math.min(spy.index, r.links.length - 1)) : -1;
+  const activeIndex = r.links.findIndex((l) => l.id === currentId); // -1 = none reached yet
 
-  const pick = (link, i) => {
-    choose(link.id, i);
-    jumpToMessage(link.id, i);
-    if (!r.isDocked) r.closeDrawer();
-  };
+  const pick = (link) => {
+  choose(link.id);
+  jumpToMessage(link.id);
+  if (!r.isDocked) r.closeDrawer();
+};
 
   const toggle = () => {
     if (!r.isDocked && !r.isOpen) closeKeyboard(); // the drawer must not sit beside an open keyboard

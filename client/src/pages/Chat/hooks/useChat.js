@@ -6,6 +6,7 @@ import { neighborsFor } from "../../../lib/neighbors";
 // true: the input is locked until n8n sends "done". false: you can keep sending.
 const LOCK_INPUT_WHILE_WAITING = true;
 
+// the "On this page" list asks n8n (/rightsb) again
 const refreshOutline = () => window.dispatchEvent(new Event("outline:refresh"));
 
 const userMessage = (text) => ({
@@ -32,7 +33,7 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
   const [isWaiting, setIsWaiting] = useState(Boolean(firstMessage));
   const [words, setWords] = useState([]);
   const [sendError, setSendError] = useState(null);
-  const [failed, setFailed] = useState(null); // { text, selection, neighbors } of the send that failed
+  const [failed, setFailed] = useState(null); // { text, selection, neighbors, messageId } of the send that failed
 
   const startedRef = useRef(false);
   const lastSentRef = useRef(null);
@@ -78,13 +79,13 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
         if (evt.done) {
           setIsWaiting(false);
           setWords([]);
-          refreshOutline(); // the reply is finished, so the "On this page" list may have changed
+          refreshOutline();
         }
       } else if (evt.type === "reply_failed") {
         setIsWaiting(false);
         setWords([]);
         setSendError("failed");
-        setFailed(lastSentRef.current); // so Retry can resend it (neighbours included)
+        setFailed(lastSentRef.current); // so Retry can resend it (neighbours and id included)
       }
     });
   }, [subscribe, chatId]);
@@ -94,7 +95,7 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
     if (!firstMessage || startedRef.current) return;
     startedRef.current = true;
     // a brand new chat: nothing came before this message, so there are no neighbours
-    deliver(firstMessage, null, null);
+    deliver(firstMessage, null, null, messages[0]?.id ?? null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -104,14 +105,14 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
   };
 
   // hand a message to the server
-  async function deliver(text, selection = null, neighbors = null) {
-    lastSentRef.current = { text, selection, neighbors };
+  async function deliver(text, selection = null, neighbors = null, messageId = null) {
+    lastSentRef.current = { text, selection, neighbors, messageId };
     setIsWaiting(true);
     setWords([]);
     setSendError(null);
     try {
-      const result = await sendMessage(chatId, text, selection, neighbors);
-      refreshOutline(); // the "On this page" list asks n8n (/rightsb) again
+      const result = await sendMessage(chatId, text, selection, neighbors, messageId);
+      refreshOutline();
       if (result.message) {
         // old synchronous workflow: the reply is already here
         setMessages((prev) => [...prev, result.message]);
@@ -123,7 +124,7 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
       }
     } catch (err) {
       setSendError(err.kind ?? "failed");
-      setFailed({ text, selection, neighbors });
+      setFailed({ text, selection, neighbors, messageId });
       setIsWaiting(false);
     }
   }
@@ -137,18 +138,19 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
     // otherwise the last message would be the one we are sending
     const neighbors = neighborsFor(messages);
 
-    setMessages((prev) => [...prev, userMessage(text)]);
-    deliver(text, selection, neighbors);
+    const msg = userMessage(text);
+    setMessages((prev) => [...prev, msg]);
+    deliver(text, selection, neighbors, msg.id);
   };
 
   // resend the message that failed (its bubble is already on screen)
   const retrySend = () => {
     if (!failed) return;
-    const { text, selection, neighbors } = failed;
+    const { text, selection, neighbors, messageId } = failed;
     setFailed(null);
-    // reuse the neighbours from the original send: the failed bubble is already
+    // reuse the neighbours and the id from the original send: the failed bubble is already
     // in the list now, so computing them again would pick up that bubble
-    deliver(text, selection, neighbors);
+    deliver(text, selection, neighbors, messageId);
   };
 
   return {

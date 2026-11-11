@@ -32,7 +32,10 @@ function AppShellInner() {
 
   const showStripNewChat =
     !isDesktop && !pathname.startsWith("/chat/") && pathname !== "/new";
-  // where a page can put its title: the top strip, next to the sidebar button
+  // the right bar is docked beside the chat: the header should end where the chat ends
+const reserveRight = right.available && right.isDocked && right.isOpen;
+
+    // where a page can put its title: the top strip, next to the sidebar button
   const [headerSlot, setHeaderSlot] = useState(null);
 
   // On a phone, closing the drawer while on /new brings up the keyboard.
@@ -159,6 +162,7 @@ function AppShellInner() {
               {/* top strip: the sidebar button, with the page's title on the same line */}
               {!isOpen && (
                 <div
+                  style={reserveRight ? { paddingRight: right.width + 12 } : undefined}
                   className={`flex h-15 shrink-0 items-center gap-2 p-3 ${
                     isDesktop ? "pl-15" : ""
                   }`}

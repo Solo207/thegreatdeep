@@ -15,6 +15,7 @@ import {
 import { cleanOptions, hasOptions } from "../lib/detail.js";
 import { neighbor } from "../lib/neighbors.js";
 import { wordsFrom } from "../lib/words.js";
+import { neighbor, cleanId } from "../lib/neighbors.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -167,6 +168,7 @@ router.post("/:chatId/messages", async (req, res) => {
     const data = await callN8n("chat-message", {
       ...userDetails(req),
       chatId,
+      messageId: cleanId(req.body?.messageId),
       message: content.trim(),
       selection, // null unless the user tapped a button or list row
       callbackUrl: process.env.PUBLIC_BASE_URL

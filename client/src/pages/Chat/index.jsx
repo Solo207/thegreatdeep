@@ -10,6 +10,7 @@ import useChat from "./hooks/useChat";
 import { useRoughbooks } from "../../components/roughbooks/roughbooks-context";
 import usePageTitle from "../../hooks/usePageTitle";
 import RightSidebar from "../../components/rightbar/RightSidebar";
+import { useRightSidebar } from "../../components/rightbar/right-sidebar-context";
 
 
 const ERROR_TEXT = {
@@ -24,6 +25,9 @@ function ChatScreen({ chatId }) {
   const navigate = useNavigate();
   const { refresh, chats, pinned } = useHistory();
   const roughbooks = useRoughbooks();
+
+  const right = useRightSidebar();
+  const reserveRight = right?.available && right.isDocked && right.isOpen ? right.width : 0;
 
   // what /new (or a roughbook) handed over, read once when this screen is created
   const [firstMessage] = useState(() => location.state?.firstMessage ?? null);
@@ -106,7 +110,9 @@ function ChatScreen({ chatId }) {
 
  return (
   <div className="flex min-h-0 flex-1 flex-col">
-    <ChatHeader chat={chatForMenu} />
+    <div style={reserveRight ? { paddingRight: reserveRight } : undefined}>
+      <ChatHeader chat={chatForMenu} />
+    </div>
 
     {/* Below the header: chat on the left, "On this page" sidebar on the right */}
     <div className="relative flex min-h-0 flex-1">

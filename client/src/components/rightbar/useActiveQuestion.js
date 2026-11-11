@@ -1,39 +1,40 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const LINE = 40; // px below the top edge of the chat: the question at or above this line is "current"
-const PAUSE_MS = 900; // after tapping a row, don't re-measure while the smooth scroll is running
+const LINE = 40; // px below the top edge of the chat: a listed question at or above this line has been reached
+const PAUSE_MS = 900; // after tapping a row, don't re-measure while the smooth scroll runs
 
-export default function useActiveQuestion(enabled) {
-  const [spy, setSpy] = useState({ id: null, index: 0 });
+export default function useActiveQuestion(enabled, links) {
+  const [currentId, setCurrentId] = useState(null);
   const pausedUntil = useRef(0);
+  const key = links.map((l) => l.id).join("|"); // changes when the list changes
 
   useEffect(() => {
     if (!enabled) return;
     const scroller = document.querySelector("[data-chat-scroller]");
     if (!scroller) return;
+    const listed = new Set(key ? key.split("|") : []);
     let frame = 0;
 
     const compute = () => {
       frame = 0;
       if (Date.now() < pausedUntil.current) return;
-      const els = scroller.querySelectorAll("[data-user-message]");
-      if (!els.length) return;
       const line = scroller.getBoundingClientRect().top + LINE;
-      let index = 0;
-      els.forEach((el, i) => {
-        if (el.getBoundingClientRect().top <= line) index = i;
+      let found = null;
+      // messages are in chat order, so the last listed one above the line wins
+      scroller.querySelectorAll("[data-user-message]").forEach((el) => {
+        const id = el.dataset.messageId;
+        if (id && listed.has(id) && el.getBoundingClientRect().top <= line) found = id;
       });
-      const id = els[index].dataset.messageId ?? null;
-      setSpy((prev) => (prev.index === index && prev.id === id ? prev : { id, index }));
+      // nothing new reached the line: the current row stays highlighted
+      if (found) setCurrentId((prev) => (prev === found ? prev : found));
     };
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(compute);
     };
 
     scroller.addEventListener("scroll", schedule, { passive: true });
-    // a new question was added: look again
     const column = scroller.firstElementChild;
-    const observer = new MutationObserver(schedule);
+    const observer = new MutationObserver(schedule); // a question was added
     if (column) observer.observe(column, { childList: true });
     schedule();
 
@@ -42,13 +43,13 @@ export default function useActiveQuestion(enabled) {
       observer.disconnect();
       if (frame) cancelAnimationFrame(frame);
     };
-  }, [enabled]);
+  }, [enabled, key]);
 
   // a row was tapped: mark it at once
-  const choose = useCallback((id, index) => {
+  const choose = useCallback((id) => {
     pausedUntil.current = Date.now() + PAUSE_MS;
-    setSpy({ id, index });
+    setCurrentId(id);
   }, []);
 
-  return { spy, choose };
+  return { currentId, choose };
 }

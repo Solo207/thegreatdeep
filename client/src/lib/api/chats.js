@@ -69,19 +69,20 @@ export function getChat(chatId) {
 // Send a message. `selection` is set when the user tapped a button or list row:
 // { id, source: "buttons" | "list", messageId }
 // `neighbors` is { above, below }: the ids of the messages around the new one.
-export function sendMessage(chatId, content, selection = null, neighbors = {}) {
+export function sendMessage(chatId, content, selection = null, neighbors = {}, messageId = null) {
   if (inflight.has(chatId)) return inflight.get(chatId);
 
   const run = (async () => {
     const result = await request(`/${chatId}/messages`, {
       method: "POST",
       body: JSON.stringify({
-        content,
-        message: content,
-        selection,
-        above: neighbors?.above ?? null,
-        below: neighbors?.below ?? null,
-        ...optionsPayload(chatId),
+      content,
+      message: content,
+      messageId,
+      selection,
+      above: neighbors?.above ?? null,
+      below: neighbors?.below ?? null,
+      ...optionsPayload(chatId),
       }),
     });
     // the message was accepted: these extras must never turn that into a failure.
