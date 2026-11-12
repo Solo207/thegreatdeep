@@ -6,8 +6,13 @@ import { neighborsFor } from "../../../lib/neighbors";
 // true: the input is locked until n8n sends "done". false: you can keep sending.
 const LOCK_INPUT_WHILE_WAITING = true;
 
-// the "On this page" list asks n8n (/rightsb) again
+// the "On this page" list: ask n8n (/rightsb) again, or show a new row at once
 const refreshOutline = () => window.dispatchEvent(new Event("outline:refresh"));
+const addToOutline = (id, title) =>
+  window.dispatchEvent(new CustomEvent("outline:add", { detail: { id, title } }));
+
+// answers to a question (qa) get no row; typed text, buttons and lists do
+const isQaAnswer = (selection) => selection?.source === "qa";
 
 const userMessage = (text) => ({
   id: crypto.randomUUID(), // temporary: replaced by the real id n8n answers with
@@ -73,16 +78,19 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
       if (evt.chatId !== chatId) return;
 
       if (evt.type === "reply") {
+        // a reply is coming in, so the send did work: no banner
+        setSendError(null);
+        setFailed(null);
         if (evt.message) {
           setMessages((prev) => [...prev, { ...evt.message, key: crypto.randomUUID() }]);
         }
         if (evt.done) {
           setIsWaiting(false);
           setWords([]);
-          // only typed messages get a row in "On this page"
-          if (!lastSentRef.current?.selection) refreshOutline();
+          if (!isQaAnswer(lastSentRef.current?.selection)) refreshOutline();
         }
       } else if (evt.type === "reply_failed") {
+        console.warn("[chat] reply_failed event from the server:", evt);
         setIsWaiting(false);
         setWords([]);
         setSendError("failed");
@@ -122,8 +130,11 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
         );
       }
 
-      // only typed messages get a row (answers to questions, lists and buttons don't)
-      if (!selection) refreshOutline();
+      // typed text, buttons and lists get a row; answers to a question (qa) don't
+      if (!isQaAnswer(selection)) {
+        if (result.id && result.title) addToOutline(result.id, result.title);
+        refreshOutline();
+      }
 
       if (result.message) {
         // old synchronous workflow: the reply is already here
@@ -135,6 +146,7 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
         setWords(result.words ?? []);
       }
     } catch (err) {
+      console.warn("[chat] the send request failed:", err);
       setSendError(err.kind ?? "failed");
       setFailed({ text, selection, neighbors, localId });
       setIsWaiting(false);
@@ -155,11 +167,38 @@ export default function useChat(chatId, firstMessage = null, onReply = null) {
     deliver(text, selection, neighbors, msg.id);
   };
 
-  // resend the message that failed (its bubble is already on screen)
-  const retrySend = () => {
+  // Resend the message that failed. The failure can be a lost answer while the message did
+  // reach n8n, so the server is asked first: sending it again would make n8n answer twice.
+  const retrySend = async () => {
     if (!failed) return;
     const { text, selection, neighbors, localId } = failed;
     setFailed(null);
+    setSendError(null);
+
+    try {
+      const data = await getChat(chatId);
+      const list = data.messages ?? [];
+
+      if (data.pending) {
+        // n8n is still working on it: just wait for the reply
+        setIsWaiting(true);
+        setWords(data.pending.words ?? []);
+        return;
+      }
+
+      const onServer = list.filter((m) => m.role === "user").length;
+      const onPage = messages.filter((m) => m.role === "user").length;
+      const lastIsUser = list[list.length - 1]?.role === "user";
+      if (onServer >= onPage && !lastIsUser) {
+        // the message arrived and was answered: show the real history instead of resending
+        setMessages(list);
+        setIsWaiting(false);
+        return;
+      }
+    } catch {
+      // can't check: fall through and send it again
+    }
+
     // reuse the neighbours from the original send: the failed bubble is already
     // in the list now, so computing them again would pick up that bubble
     deliver(text, selection, neighbors, localId);

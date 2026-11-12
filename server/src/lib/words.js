@@ -24,3 +24,13 @@ export function messageIdFrom(data) {
   const id = typeof raw === "string" || typeof raw === "number" ? String(raw) : "";
   return ID_RE.test(id) ? id : null;
 }
+
+/** The short title n8n gives the user's message, if it sends one. */
+export function titleFrom(data) {
+  const first = Array.isArray(data) ? data[0] : data;
+  const t =
+    typeof first?.title === "string"
+      ? first.title.replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, 120)
+      : "";
+  return t || null;
+}

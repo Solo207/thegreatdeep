@@ -13,7 +13,7 @@ import {
   getPending,
 } from "../lib/pending.js";
 import { cleanOptions, hasOptions } from "../lib/detail.js";
-import { wordsFrom } from "../lib/words.js";
+import { wordsFrom, messageIdFrom, titleFrom } from "../lib/words.js";
 import { neighbor } from "../lib/neighbors.js";
 
 const router = Router();
@@ -188,7 +188,7 @@ router.post("/:chatId/messages", async (req, res) => {
     const found = wordsFrom(data);
     const words = found.length ? found : ["Thinking"];
     setPendingWords(userId, chatId, words);
-    res.status(202).json({ id: messageIdFrom(data), words });
+    res.status(202).json({ id: messageIdFrom(data), title: titleFrom(data), words });
   } catch (err) {
     clearPending(userId, chatId);
     fail(res, err);

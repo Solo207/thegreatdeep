@@ -37,9 +37,13 @@ export default function ChatInput({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    if (!value) {
+      el.style.height = ""; // empty: one row, whatever the placeholder says (a long one can wrap on a phone)
+      return;
+    }
     el.style.height = "auto";
     el.style.height = Math.min(el.scrollHeight, 200) + "px";
-  }, [value]);
+  }, [value, disabled]);
 
   // when the box is unlocked again, put the cursor back in it (computers only)
   const wasDisabled = useRef(disabled);
@@ -172,8 +176,7 @@ export default function ChatInput({
           onScroll={(e) => {
             if (mirrorRef.current) mirrorRef.current.scrollTop = e.currentTarget.scrollTop;
           }}
-          placeholder={disabled ? "Waiting for the reply..." : "Ask anything..."}
-          className="relative max-h-50 w-full min-w-0 flex-1 resize-none bg-transparent px-1 py-1.5 text-zinc-100 placeholder-zinc-500 outline-none disabled:cursor-not-allowed disabled:placeholder-zinc-600"
+          placeholder={disabled ? "Waiting for reply..." : "Ask anything..."}          className="relative max-h-50 w-full min-w-0 flex-1 resize-none bg-transparent px-1 py-1.5 text-zinc-100 placeholder-zinc-500 outline-none disabled:cursor-not-allowed disabled:placeholder-zinc-600"
         />
       </div>
 

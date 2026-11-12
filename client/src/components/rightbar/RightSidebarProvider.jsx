@@ -13,7 +13,7 @@ export default function RightSidebarProvider({ children }) {
   const available = Boolean(chatId) && !params.has("profile");
 
   const state = useRightSidebarState();
-  const { links, status, refresh } = useOutline(chatId);
+const { links, status, refresh, add } = useOutline(chatId);
 
   // the chat sent a message (or its reply finished): ask n8n again
   useEffect(() => {
@@ -21,6 +21,12 @@ export default function RightSidebarProvider({ children }) {
     window.addEventListener("outline:refresh", on);
     return () => window.removeEventListener("outline:refresh", on);
   }, [refresh]);
+
+  useEffect(() => {
+  const on = (e) => add(e.detail);
+  window.addEventListener("outline:add", on);
+  return () => window.removeEventListener("outline:add", on);
+}, [add]);
 
   // a different chat: a phone drawer starts closed
   const { closeDrawer } = state;
